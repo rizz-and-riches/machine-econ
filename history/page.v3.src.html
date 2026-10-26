@@ -1,0 +1,505 @@
+<title>Economy of Minds Rebuilt</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A full rebuild of the Economy of Minds training loop: agents with wake-up prompts bid for turns, pay each other, go bankrupt and get rewritten, plus a real AI mode on MATH problems.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: a trading-floor console for a team of AI agents. The live machine is the hero:
+   a workspace card (the problem being solved), the workflow so far, and four role columns
+   where you can see who wakes up and who wins. Below it, the story reads like a lab notebook.
+   Brass means credits and nothing else. Red only marks failure. */
+:root {
+  color-scheme: dark;
+  --ink: #111824;
+  --ink-2: #0d131d;
+  --panel: #17202e;
+  --raise: #202b3d;
+  --line: #2a374c;
+  --fg: #eaedf3;
+  --muted: #97a3b7;
+  --brass: #e7b75e;
+  --brass-soft: rgba(231, 183, 94, 0.14);
+  --fail: #e47f71;
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r: 12px;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--ink); color: var(--fg); }
+body { font-family: var(--body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 1380px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; letter-spacing: -0.012em; }
+h1 { font-size: clamp(2rem, 4.6vw, 3.4rem); font-weight: 780; font-stretch: 118%; line-height: 0.98; }
+h2 { font-size: clamp(1.45rem, 2.6vw, 2.05rem); font-weight: 740; font-stretch: 112%; line-height: 1.08; }
+h3 { font-size: 1.06rem; font-weight: 700; }
+p { margin: 0; }
+a { color: var(--fg); text-decoration-color: var(--brass); text-underline-offset: 3px; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.muted { color: var(--muted); }
+.brass { color: var(--brass); }
+.bad { color: var(--fail); }
+.num { font-variant-numeric: tabular-nums; }
+
+.top { padding-block: 26px 16px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 16px 32px; align-items: end; }
+.top .q { color: var(--muted); font-size: clamp(1.02rem, 1.6vw, 1.2rem); margin-top: 10px; max-width: 60ch; }
+.top .q b { color: var(--fg); }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 28px; margin: 0; }
+.stats div { display: flex; flex-direction: column; }
+.stats dt { color: var(--muted); font-size: 0.82rem; }
+.stats dd { margin: 0; font-family: var(--display); font-weight: 720; font-size: 1.55rem; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stats .hero-num { font-size: 2.3rem; }
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px; padding-block: 0 16px; border-bottom: 1px solid var(--line); }
+nav.jump a { color: var(--muted); text-decoration: none; font-size: 0.93rem; padding: 4px 11px; border-radius: 999px; border: 1px solid var(--line); }
+nav.jump a:hover { color: var(--fg); border-color: var(--muted); }
+section { padding-block: 34px; border-bottom: 1px solid var(--line); }
+section > .head { display: grid; gap: 8px; margin-bottom: 18px; max-width: 78ch; }
+section > .head p { color: var(--muted); font-size: 1.04rem; }
+.kicker { color: var(--brass); font-family: var(--display); font-weight: 700; font-size: 0.95rem; }
+
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; }
+.arena-wrap { position: relative; background: radial-gradient(120% 70% at 50% 0%, var(--panel) 0%, var(--ink-2) 100%); border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; min-width: 0; display: flex; flex-direction: column; }
+.narrator { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 14px; align-items: baseline; padding: 14px 18px 12px; border-bottom: 1px solid var(--line); min-height: 80px; background: rgba(13, 19, 29, 0.6); }
+.narrator .phase { font-family: var(--display); font-weight: 720; font-size: 0.95rem; color: var(--brass); white-space: nowrap; }
+.narrator p { font-size: clamp(1.02rem, 1.5vw, 1.2rem); line-height: 1.38; }
+.narrator p b { color: var(--brass); font-weight: 700; }
+.narrator p .bad { font-weight: 700; }
+#arena { display: block; width: 100%; flex: 1 1 auto; min-height: 640px; cursor: default; touch-action: manipulation; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; padding: 10px 18px 12px; font-size: 0.88rem; color: var(--muted); border-top: 1px solid var(--line); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+[hidden] { display: none !important; }
+#tour { position: absolute; left: 14px; bottom: 60px; width: min(570px, calc(100% - 28px)); background: var(--panel); border: 1px solid var(--brass); border-radius: var(--r); padding: 16px 18px; display: grid; gap: 10px; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45); }
+#tour h3 { font-size: 1.2rem; }
+#tour .count { color: var(--muted); font-size: 0.85rem; }
+#tour .row { justify-content: space-between; }
+#predict { position: absolute; inset: 80px 0 0 0; background: rgba(13, 19, 29, 0.88); display: grid; place-items: center; padding: 16px; }
+#predict .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; max-width: 560px; width: 100%; display: grid; gap: 12px; }
+#predict .choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+#predict .choice { text-align: left; padding: 9px 10px; }
+#predict .choice b { display: block; }
+#predict .choice[data-win="true"] { border-color: var(--brass); box-shadow: 0 0 0 1px var(--brass); }
+
+.side { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.transport { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { background: var(--raise); border: 1px solid var(--line); border-radius: 9px; padding: 8px 13px; cursor: pointer; line-height: 1.2; }
+.btn:hover { border-color: var(--muted); }
+.btn:disabled { opacity: 0.45; cursor: default; }
+.btn.primary { background: var(--brass); color: #1c1407; border-color: var(--brass); font-weight: 700; }
+.btn.ghost { background: transparent; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; }
+.seg button { background: transparent; border: 0; padding: 8px 11px; cursor: pointer; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--raise); color: var(--fg); font-weight: 700; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 16px; min-width: 0; }
+.panel > h3 { margin-bottom: 8px; }
+#inspector { min-height: 240px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 0.95rem; margin: 10px 0; }
+.kv dt { color: var(--muted); }
+.kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+.why { border-left: 3px solid var(--brass); padding-left: 12px; margin-top: 8px; display: grid; gap: 6px; }
+.prompt { background: var(--ink-2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-size: 0.92rem; display: grid; gap: 4px; }
+.prompt ul { margin: 0; padding-left: 1.1em; }
+#ledger ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 260px; overflow-y: auto; font-size: 0.93rem; }
+#ledger li button { all: unset; display: block; width: 100%; box-sizing: border-box; padding: 5px 8px; border-radius: 6px; cursor: pointer; font-variant-numeric: tabular-nums; }
+#ledger li button:hover, #ledger li button[aria-current="true"] { background: var(--raise); }
+#ledger li button:focus-visible { outline: 2px solid var(--brass); }
+#ledger li button.bad { color: var(--fail); }
+#ledger li.sep { color: var(--muted); font-size: 0.82rem; padding: 6px 8px 2px; }
+
+.below { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+.below-2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+.chart { display: block; width: 100%; height: 300px; }
+.chart.short { height: 220px; }
+.cap { font-size: 0.88rem; color: var(--muted); margin-top: 6px; }
+.chart-legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 0.86rem; color: var(--muted); margin-bottom: 6px; }
+.chart-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.chart-legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid var(--fg); }
+.traits { display: grid; gap: 10px; margin-top: 6px; }
+.trait { display: grid; grid-template-columns: minmax(0, 9.5em) minmax(0, 1fr) 4.6em; gap: 10px; align-items: center; font-size: 0.92rem; }
+.trait .track { height: 14px; background: var(--ink-2); border-radius: 7px; position: relative; }
+.trait .now { position: absolute; inset: 0 auto 0 0; background: var(--fg); border-radius: 7px; opacity: 0.85; transition: width .4s; }
+.trait .was { position: absolute; top: -3px; width: 3px; height: 20px; background: var(--muted); border-radius: 2px; }
+.trait b { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700; }
+.workflows { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; font-size: 0.93rem; max-height: 300px; overflow-y: auto; }
+.workflows li { display: grid; grid-template-columns: 5.8em minmax(0, 1fr) 1.6em; gap: 8px; align-items: center; padding: 4px 6px; border-radius: 6px; background: var(--ink-2); }
+.chips { display: inline-flex; flex-wrap: wrap; gap: 3px; vertical-align: middle; }
+.chip { display: inline-grid; place-items: center; min-width: 22px; height: 22px; padding: 0 4px; border-radius: 5px; font-size: 0.8rem; font-weight: 700; background: var(--raise); border: 1px solid var(--line); }
+.chip.P { background: #2b3a52; } .chip.E { background: #3b4a62; } .chip.V { background: #4d5c74; } .chip.A { background: #c9cfda; color: #111824; }
+
+.controls { display: grid; gap: 14px; }
+.ctl { display: grid; gap: 2px; }
+.ctl label { display: flex; justify-content: space-between; gap: 10px; font-size: 0.93rem; }
+.ctl label output { color: var(--brass); font-variant-numeric: tabular-nums; font-weight: 700; }
+.ctl small { color: var(--muted); font-size: 0.8rem; }
+input[type="range"] { width: 100%; accent-color: var(--brass); }
+.switches { display: grid; gap: 4px; }
+.switch { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: transparent; border: 0; padding: 5px 0; cursor: pointer; text-align: left; }
+.switch .track { width: 40px; height: 22px; border-radius: 11px; background: var(--line); position: relative; flex: none; transition: background .15s; }
+.switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+.switch[aria-checked="true"] .track { background: var(--brass-soft); }
+.switch[aria-checked="true"] .track::after { transform: translateX(18px); background: var(--brass); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.field { display: flex; gap: 8px; align-items: center; font-size: 0.93rem; flex-wrap: wrap; }
+.field input, .field select { background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; max-width: 100%; }
+.field input { width: 84px; }
+details.rules summary { cursor: pointer; font-family: var(--display); font-weight: 700; font-size: 1.06rem; list-style: none; display: flex; justify-content: space-between; align-items: center; }
+details.rules summary::-webkit-details-marker { display: none; }
+details.rules summary::after { content: "+"; color: var(--brass); font-size: 1.3rem; }
+details.rules[open] summary::after { content: "\2212"; }
+details.rules[open] summary { margin-bottom: 12px; }
+
+.ledger-demo { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 18px; }
+.trio { display: grid; grid-template-columns: 0.8fr 1fr 1fr 1fr 0.8fr; gap: 8px; align-items: stretch; }
+.acct { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 8px; display: grid; gap: 2px; text-align: center; transition: box-shadow .25s, border-color .25s; min-width: 0; }
+.acct.hot { border-color: var(--brass); box-shadow: 0 0 0 1px var(--brass), 0 0 28px rgba(231, 183, 94, 0.22); }
+.acct .who { font-family: var(--display); font-weight: 760; font-size: 1.35rem; }
+.acct .bal { font-family: var(--display); font-weight: 720; font-size: 2.1rem; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.acct small { color: var(--muted); font-size: 0.8rem; }
+.acct.outside { background: transparent; border-style: dashed; }
+.acct.outside .bal { font-size: 1.6rem; }
+#ledgerSteps { list-style: none; padding: 0; margin: 0; display: grid; gap: 5px; }
+#ledgerSteps li { padding: 8px 12px; border-radius: 8px; background: var(--panel); font-variant-numeric: tabular-nums; }
+#ledgerSteps li.now { box-shadow: inset 3px 0 0 var(--brass); background: var(--raise); }
+.checkline { margin-top: 12px; font-variant-numeric: tabular-nums; font-size: 1.05rem; }
+
+.lanes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.lane { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; display: grid; gap: 6px; min-width: 0; }
+.lane h3 { font-size: 1rem; }
+.lane .what { font-size: 0.85rem; color: var(--muted); min-height: 2.6em; }
+.lane .big { font-family: var(--display); font-weight: 760; font-size: 2.1rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.lane canvas { width: 100%; height: 190px; display: block; }
+.lane.full { border-color: var(--brass); }
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 700; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.best { color: var(--brass); font-weight: 700; }
+td code, li code { font-size: 0.86em; background: var(--ink-2); padding: 1px 5px; border-radius: 4px; }
+.wide table { min-width: 760px; }
+.note { margin-top: 16px; max-width: 78ch; display: grid; gap: 8px; }
+.verdict { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.82rem; font-weight: 700; white-space: nowrap; border: 1px solid var(--line); }
+.verdict.yes { background: var(--fg); color: var(--ink); border-color: var(--fg); }
+.verdict.part { background: transparent; color: var(--fg); border-color: var(--fg); }
+.verdict.no { background: transparent; color: var(--fail); border-color: var(--fail); }
+.verdict.na { background: transparent; color: var(--muted); }
+
+.ai-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; }
+#aiLog { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 520px; overflow-y: auto; font-size: 0.92rem; }
+#aiLog li { padding: 6px 9px; border-radius: 6px; background: var(--ink-2); overflow-wrap: anywhere; }
+#aiLog li .who { font-weight: 700; }
+#aiLog li.sep { background: transparent; color: var(--brass); font-family: var(--display); font-weight: 700; padding-top: 10px; }
+.ai-births { display: grid; gap: 8px; margin-top: 10px; }
+.ai-births details { background: var(--ink-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+.ai-births summary { cursor: pointer; }
+.ai-births pre { white-space: pre-wrap; font-family: var(--body); font-size: 0.88rem; margin: 6px 0 0; overflow-wrap: anywhere; }
+.bignum { font-family: var(--display); font-weight: 760; font-size: 2rem; font-variant-numeric: tabular-nums; line-height: 1.1; }
+
+.hood-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 18px; }
+.hood-grid ul { margin: 8px 0 0; padding-left: 1.2em; display: grid; gap: 6px; }
+#testOut { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 3px; font-size: 0.9rem; max-height: 440px; overflow-y: auto; }
+#testOut li { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); gap: 8px; }
+#testOut .p { color: var(--brass); font-weight: 700; }
+#testOut .f { color: var(--fail); font-weight: 700; }
+footer { padding-block: 26px 44px; color: var(--muted); font-size: 0.9rem; max-width: 92ch; }
+
+@media (max-width: 1080px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .side { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .side .transport { grid-column: 1 / -1; }
+  .below-2 { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .lanes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .top { grid-template-columns: minmax(0, 1fr); }
+  #arena { min-height: 600px; }
+  .side, .below, .below-2, .two, .ledger-demo, .hood-grid, .ai-grid { grid-template-columns: minmax(0, 1fr); }
+  .trio { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .trio .outside { grid-column: span 3; }
+  .stats dd { font-size: 1.25rem; }
+  .stats .hero-num { font-size: 1.8rem; }
+  .narrator { grid-template-columns: minmax(0, 1fr); min-height: 100px; }
+  #tour { bottom: 64px; }
+}
+@media (max-width: 440px) { .lanes { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Economy of Minds, rebuilt</h1>
+      <p class="q">Can a market make a team of weak AI agents <b>more capable over time</b>? This is a full rebuild of the paper's training loop: agents decide when to wake up, bid for turns, pay whoever helped them, go bankrupt, and get their instructions rewritten.</p>
+    </div>
+    <dl class="stats" aria-live="polite">
+      <div><dt>Test score now</dt><dd class="hero-num" id="sScore">0%</dd></div>
+      <div><dt>Before training</dt><dd id="sStart">0%</dd></div>
+      <div><dt>Tasks trained</dt><dd id="sTask">0</dd></div>
+      <div><dt>Agents alive</dt><dd id="sPop">0</dd></div>
+    </dl>
+  </header>
+  <nav class="jump" aria-label="Sections">
+    <a href="#live">Live economy</a>
+    <a href="#credits">1. Follow the credits</a>
+    <a href="#ablation">2. Turn parts off</a>
+    <a href="#prices">3. Prices find value</a>
+    <a href="#workflows">4. Workflows emerge</a>
+    <a href="#real">Real AI mode</a>
+    <a href="#scorecard">Rebuild vs paper</a>
+    <a href="#hood">Under the hood</a>
+  </nav>
+
+  <main>
+    <section id="live" aria-label="Live economy" style="padding-top:20px">
+      <div class="stage">
+        <div class="arena-wrap">
+          <div class="narrator" aria-live="polite"><span class="phase" id="nPhase">Starting</span><p id="nText">A new team of five weak agents is waking up.</p></div>
+          <canvas id="arena" aria-label="Live view of the agent economy. The narrator and the ledger give a text version."></canvas>
+          <div class="legend">
+            <span><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="#c9cfda"/><text x="11" y="14.5" text-anchor="middle" font-size="8" font-weight="700" fill="#111824">72</text></svg>Number inside = how good it is at its job</span>
+            <span><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9" fill="none" stroke="#2a374c" stroke-width="2.5"/><path d="M11 2 A9 9 0 1 1 3.2 15.5" fill="none" stroke="#e7b75e" stroke-width="2.5"/></svg>Brass ring = credits</span>
+            <span><b class="brass">21</b>&nbsp;below = its bid</span>
+            <span><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="7" fill="#c9cfda"/><circle cx="11" cy="11" r="10" fill="none" stroke="#eaedf3" stroke-width="1.2" stroke-dasharray="2 2"/></svg>Dashed ring = awake for this turn</span>
+          </div>
+          <div id="tour" hidden role="dialog" aria-labelledby="tourTitle">
+            <span class="count" id="tourCount"></span>
+            <h3 id="tourTitle"></h3>
+            <p id="tourText"></p>
+            <div class="row"><button class="btn ghost" id="tourSkip">Skip</button><span class="row"><button class="btn" id="tourBack">Back</button><button class="btn primary" id="tourNext">Next</button></span></div>
+          </div>
+          <div id="predict" hidden>
+            <div class="card" role="dialog" aria-labelledby="predTitle">
+              <h3 id="predTitle">Predict the winner</h3>
+              <p id="predText" class="muted"></p>
+              <div class="choices" id="predChoices"></div>
+              <p id="predReveal" hidden></p>
+              <div class="row"><button class="btn primary" id="predGo" hidden>Continue</button><button class="btn" id="predOff">Stop asking</button></div>
+            </div>
+          </div>
+        </div>
+        <aside class="side">
+          <div class="transport">
+            <button class="btn primary" id="bPlay">Pause</button>
+            <button class="btn" id="bStep" title="Run one task">Step</button>
+            <div class="seg" role="group" aria-label="Speed" id="speedSeg"><button data-s="slow">Slow</button><button data-s="normal" aria-pressed="true">Normal</button><button data-s="fast">Fast</button><button data-s="turbo">Turbo</button></div>
+            <button class="btn" id="bReplay" title="Replay the last task slowly">Replay last task</button>
+            <button class="btn" id="bSkip" title="Train on 10 tasks instantly">+10 tasks</button>
+            <button class="btn" id="bTour">Take the tour</button>
+          </div>
+          <div class="panel" id="inspector" aria-live="polite"></div>
+          <div class="panel" id="ledger"><h3>Ledger, last task</h3><ol id="ledgerList"></ol></div>
+        </aside>
+      </div>
+
+      <div class="below">
+        <div class="panel">
+          <h3>Is the team getting better?</h3>
+          <div class="chart-legend"><span><i style="border-top-width:3px"></i>This run (test every 10 tasks)</span><span><i style="border-top-style:dashed;border-color:var(--muted)"></i>Average of 30 recorded runs</span></div>
+          <canvas class="chart" id="chartScore" aria-label="Test score over training"></canvas>
+          <p class="cap">Test score = share of 200 fixed test problems (40 per level) the frozen team solves, with no money moving (the paper's Alg. 2). Training follows the paper's MATH setup: 20 problems per level, easy to hard. After 100 tasks the run keeps going on mixed problems.</p>
+        </div>
+        <div class="panel">
+          <h3>Score by difficulty</h3>
+          <canvas class="chart" id="chartLevels" aria-label="Test score per level, before and now"></canvas>
+          <p class="cap">Grey = before training, white = now. The paper saw gains on every level, including the hardest ones it barely trained on (Fig. 6).</p>
+        </div>
+      </div>
+      <div class="below-2">
+        <div class="panel">
+          <h3>What the agents learned</h3>
+          <p class="cap" style="margin-top:0">Average "prompt" of each role. The grey tick is where the starting team began.</p>
+          <div class="traits" id="traits"></div>
+        </div>
+        <div class="panel">
+          <h3>Recent workflows</h3>
+          <p class="cap" style="margin-top:0">Who won each turn of the last tasks. Nobody designs this order. Auctions pick it, one turn at a time.</p>
+          <ul class="workflows" id="liveFlows"></ul>
+        </div>
+        <div class="panel">
+          <details class="rules" open>
+            <summary>Change the rules</summary>
+            <div class="controls">
+              <div class="ctl"><label for="cRent">Rent <output id="oRent"></output></label><input type="range" id="cRent" min="0" max="200" step="5"><small>Every agent pays this every 3 tasks.</small></div>
+              <div class="ctl"><label for="cReward">Reward size <output id="oReward"></output></label><input type="range" id="cReward" min="10" max="400" step="10"><small>Size of the score for a right or wrong answer.</small></div>
+              <div class="ctl"><label for="cEps">Newcomer premium <output id="oEps"></output></label><input type="range" id="cEps" min="0.5" max="10" step="0.5"><small>A newcomer bids the top bid plus this.</small></div>
+              <div class="field"><label for="cRewardRule">Reward rule</label><select id="cRewardRule"><option value="released">Released code (default)</option><option value="outcome">Paper Eq. 1 (last agent only)</option><option value="chainSplit">Shared by unique agents</option></select></div>
+              <div class="switches">
+                <button class="switch" role="switch" id="tAuction" aria-checked="true"><span>Auction picks who acts</span><span class="track"></span></button>
+                <button class="switch" role="switch" id="tExplore" aria-checked="true"><span>Repair failed agents (exploration)</span><span class="track"></span></button>
+                <button class="switch" role="switch" id="tExploit" aria-checked="true"><span>Copy the richest (exploitation)</span><span class="track"></span></button>
+                <button class="switch" role="switch" id="tFixed" aria-checked="false"><span>Everyone bids the same</span><span class="track"></span></button>
+                <button class="switch" role="switch" id="tPredict" aria-checked="false"><span>Ask me to predict each winner</span><span class="track"></span></button>
+              </div>
+              <div class="row"><button class="btn" id="bDefaults">Reset rules</button><span class="field"><label for="cSeed">Seed</label><input id="cSeed" type="number" min="1" step="1"></span><button class="btn" id="bRestart">Restart</button></div>
+              <p class="cap">Changes apply from the next task. Restart begins a new run from a weak team.</p>
+            </div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section id="credits" aria-label="Follow the credits">
+      <div class="head"><span class="kicker">Wow moment 1</span><h2>Follow the credits</h2>
+        <p>The three-agent story from my Learn Article, through the same payment rule the economy uses (Eq. 1). A plans, B works, C answers. Their bids are 2, 4 and 7. Everyone starts with 10. A right answer pays 10 to whoever gave it.</p></div>
+      <div class="ledger-demo">
+        <div>
+          <div class="trio" id="trio"></div>
+          <div class="row" style="margin-top:14px">
+            <div class="seg" role="group" aria-label="Story path" id="pathSeg"><button data-p="ok" aria-pressed="true">Program works</button><button data-p="bug">Bug slips through</button></div>
+            <button class="btn primary" id="bLedgerNext">Next step</button><button class="btn" id="bLedgerReset">Start over</button>
+          </div>
+          <p class="checkline" id="ledgerCheck"></p>
+        </div>
+        <ol id="ledgerSteps"></ol>
+      </div>
+    </section>
+
+    <section id="ablation" aria-label="Turn parts off">
+      <div class="head"><span class="kicker">Wow moment 2</span><h2>Turn parts off</h2>
+        <p>Is it really the market doing the work? The paper's Table 2 removes one part at a time, and separately changes the rent and the reward. Four versions race here, 8 runs each, 100 training tasks, same weak start.</p></div>
+      <div class="lanes" id="lanes"></div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="bLanes">Race again with new seeds</button><span class="muted" id="laneSeedLbl"></span></div>
+      <div class="two">
+        <div class="panel"><h3>Removing parts (Table 2, right)</h3>
+          <div class="tablewrap"><table><thead><tr><th>Version</th><th class="n">Rebuild final</th><th class="n">Rebuild best</th><th class="n">Paper mean</th><th class="n">Paper best</th></tr></thead><tbody id="tAbl"></tbody></table></div>
+          <p class="cap">Rebuild: 30 runs of 100 tasks, test score at the end ("final") and at the best checkpoint ("best"). Paper: finance task, accuracy %.</p></div>
+        <div class="panel"><h3>Changing the economics (Table 2, left)</h3>
+          <div class="tablewrap"><table><thead><tr><th>Version</th><th class="n">Rebuild final</th><th class="n">Rebuild best</th><th class="n">Paper mean</th><th class="n">Paper best</th></tr></thead><tbody id="tSens"></tbody></table></div>
+          <p class="cap">Paper: MATH with Llama-3.1-8B, accuracy %. Brass marks the top of each column.</p></div>
+      </div>
+      <div class="two">
+        <div class="panel"><h3>Paper text vs released code</h3>
+          <div class="tablewrap"><table><thead><tr><th>Rule</th><th class="n">Rebuild final</th><th class="n">Best</th></tr></thead><tbody id="tRules"></tbody></table></div>
+          <p class="cap">The paper's Eq. 1 pays only the last agent. The released research config pays a centred score: +1 for right, -1 for wrong or no answer, half to the answer agent and the full amount split over every turn. That penalty for failure turns out to matter a lot.</p></div>
+        <div class="panel"><h3>Does the order of problems matter? (Fig. 7b)</h3>
+          <canvas class="chart short" id="chartCurr" aria-label="Easy-to-hard versus hard-to-easy training"></canvas>
+          <p class="cap" id="currCap"></p></div>
+      </div>
+      <div class="row" style="margin-top:14px"><button class="btn" id="bBatch">Re-run the 4 ablations now (30 runs each)</button><span class="muted" id="batchStatus"></span></div>
+    </section>
+
+    <section id="prices" aria-label="Prices find value">
+      <div class="head"><span class="kicker">Wow moment 3</span><h2>Prices find value</h2>
+        <p>Nobody tells the agents what a turn is worth, and bids never change. Yet in each situation, the winning bid should settle at or just below what winning there actually earns (Theorem 1). Here is the live economy above, situation by situation.</p></div>
+      <div class="two" style="margin-top:0">
+        <div class="panel">
+          <div class="chart-legend"><span><i style="border-color:var(--brass);border-top-width:6px"></i>Average winning bid</span><span><i style="border-color:var(--muted);border-top-width:6px"></i>Average earned by the winner</span></div>
+          <canvas class="chart" id="chartPrice" aria-label="Price versus value per situation"></canvas>
+        </div>
+        <div class="panel" style="display:grid;gap:12px;align-content:start">
+          <p style="font-family:var(--display);font-weight:720;font-size:1.25rem">earned by a win = what the next agent pays + any reward</p>
+          <p>If an agent bids more than it earns, it loses credits every turn and goes broke. If it bids less, it gets rich and gets copied, and the copies bid a little higher. Prices get squeezed toward value.</p>
+          <p class="muted" id="priceNote"></p>
+          <div class="row"><button class="btn primary" id="bOver">Add an overbidder</button></div>
+          <p class="cap">Adds a lazy planner that bids 40 above the top planner (Lemma 2). It wins every empty-workspace auction, loses credits each time, and goes broke.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="workflows" aria-label="Workflows emerge">
+      <div class="head"><span class="kicker">Wow moment 4</span><h2>Workflows emerge</h2>
+        <p>In the paper, the order of roles is not designed. It falls out of who wakes up and who bids most. As executors learned to check their own work, separate verifier turns became less needed and some workflows got shorter (App. E). Here is what 30 recorded runs did.</p></div>
+      <div class="two" style="margin-top:0">
+        <div class="panel"><h3>Most common workflows on the test set</h3>
+          <div class="tablewrap"><table><thead><tr><th>Before training</th><th class="n">Times</th><th>After training</th><th class="n">Times</th></tr></thead><tbody id="tFlows"></tbody></table></div>
+          <p class="cap">P = planner, E = executor, V = verifier, A = answer. L = problem level. Counted over 30 runs x 200 test problems.</p></div>
+        <div class="panel"><h3>What changed inside the agents</h3>
+          <div class="tablewrap"><table><thead><tr><th>Trait</th><th class="n">Start</th><th class="n">End</th></tr></thead><tbody id="tTraits"></tbody></table></div>
+          <div class="note" style="margin-top:10px">
+            <p><b>Same as the paper:</b> executors absorbed checking. Their habit of re-checking their own steps rose sharply, like the paper's executor that took over the verifier's job. On easy problems the planner is often skipped altogether (E then A).</p>
+            <p><b>Different:</b> on harder problems the workflows got longer, not shorter. The answer agent always wakes after an executor (a rule in the released code), and learned to wait. So "not ready yet" turns now sit between steps (P E A E A E A), where the paper saw verifier turns drop out.</p>
+          </div></div>
+      </div>
+    </section>
+
+    <section id="real" aria-label="Real AI mode">
+      <div class="head"><span class="kicker">Closest to the paper</span><h2>Real AI mode</h2>
+        <p>Same economy, real AI agents. Each agent is a Claude prompt: a fixed role prompt plus a strategy prompt that evolves. Wake-up, work and prompt rewriting are all real model calls, using prompts adapted from the authors' code. The problems are real MATH competition problems with whole-number answers, marked exactly.</p></div>
+      <div class="ai-grid">
+        <div class="panel" style="display:grid;gap:12px;align-content:start">
+          <div class="row">
+            <span class="field"><label for="aiTrain">Training problems</label><select id="aiTrain"><option value="6">6</option><option value="10">10</option><option value="14" selected>14</option></select></span>
+            <span class="field"><label for="aiTest">Test problems</label><select id="aiTest"><option value="4">4</option><option value="8" selected>8</option><option value="12">12</option></select></span>
+          </div>
+          <div class="row"><button class="btn primary" id="aiStart">Start a real run</button><button class="btn" id="aiStop" disabled>Stop</button><button class="btn" id="aiCopy" disabled>Copy results</button></div>
+          <p class="muted" id="aiStatus" aria-live="polite"></p>
+          <p class="cap" id="aiAvail">The run uses the Claude available to whoever opens this page, and asks for permission on the first call. A full run is roughly 250 to 350 calls, a few seconds each, so 10 to 20 minutes. Keep this tab open.</p>
+          <div class="row" style="gap:28px">
+            <div><div class="muted" style="font-size:0.85rem">Test before training</div><div class="bignum" id="aiBefore">-</div></div>
+            <div><div class="muted" style="font-size:0.85rem">Test after training</div><div class="bignum" id="aiAfter">-</div></div>
+            <div><div class="muted" style="font-size:0.85rem">Model calls</div><div class="bignum" id="aiCalls">0</div></div>
+          </div>
+          <h3 style="margin-top:6px">Agents</h3>
+          <div class="tablewrap"><table><thead><tr><th>Agent</th><th class="n">Bid</th><th class="n">Credits</th><th>Born as</th></tr></thead><tbody id="aiAgentRows"><tr><td colspan="4" class="muted">The starting team appears here once a run starts.</td></tr></tbody></table></div>
+          <h3 style="margin-top:6px">Prompts the market rewrote</h3>
+          <div class="ai-births" id="aiBirths"><p class="muted">None yet.</p></div>
+        </div>
+        <div class="panel"><h3>What the agents said</h3><ol id="aiLog"><li class="muted">The log appears here once a run starts.</li></ol></div>
+      </div>
+      <div class="note">
+        <p><b>Read the results carefully.</b> Claude is much stronger than the paper's Llama-3.1-8B agents, so the team may start near the top and have little room to improve. Each turn is capped at 60 words to keep the agents "partial", like the paper's 128-token limit. A run of 14 problems is tiny, so treat any change as a demo of the mechanism, not as evidence.</p>
+        <p><b>Differences from the released code:</b> wake-up is judged for all candidates in one call per turn instead of one call per agent (the code's biggest cost, see its issue #1), there are no replay trials, the step budget is 8, and the population cap is 10.</p>
+      </div>
+    </section>
+
+    <section id="scorecard" aria-label="Rebuild vs paper">
+      <div class="head"><h2>Rebuild vs paper</h2><p>Every claim the paper makes that this rebuild can test, and how it came out. Numbers are from 30 recorded runs of the toy version.</p></div>
+      <div class="tablewrap wide"><table><thead><tr><th>Paper claim</th><th>Paper evidence</th><th>This rebuild</th><th>Verdict</th></tr></thead><tbody id="tScore"></tbody></table></div>
+    </section>
+
+    <section id="hood" aria-label="Under the hood">
+      <div class="head"><h2>Under the hood</h2><p>Every rule, where it comes from, and what this rebuild does. The released code is the authors' repository at commit d272266, research adapter.</p></div>
+      <div class="tablewrap wide"><table><thead><tr><th>Rule</th><th>Paper</th><th>Released code</th><th>This rebuild</th></tr></thead><tbody>
+        <tr><td>Agent</td><td>Sec. 2.1: frozen model + prompt pair (wake-up, action), fixed bid, wealth</td><td>Frozen role prompt + trainable strategy prompt</td><td>Toy: wake-up list + 1 or 2 behaviour numbers. Real AI mode: the real prompt pair</td></tr>
+        <tr><td>Roles</td><td>Planner, executor, verifier (MATH); + literature, answer (science)</td><td><code>researchworld</code>: literature, planner, deriver, verifier, answer</td><td>Planner, executor, verifier, answer (no literature)</td></tr>
+        <tr><td>Wake-up</td><td>Sec. 2.2: model judges the state</td><td>An LLM says yes or no per agent, plus hard rules: never the same role twice in a row, planner self-starts, answer only after deriver or verifier, always after deriver</td><td>Same hard rules. Toy: the agent's wake-up list. Real AI: one batched model call per turn</td></tr>
+        <tr><td>Auction, payment</td><td>Sec. 2.2, Eq. 1</td><td><code>mas.py</code></td><td>Same</td></tr>
+        <tr><td>Newcomer bid</td><td>Eq. 2, top competing bid + epsilon</td><td><code>fixed_with_eps</code> (CloudCast); research config uses <code>fixed</code></td><td>Eq. 2, research rule as a switch</td></tr>
+        <tr><td>Reward</td><td>Alg. 1: outcome reward to the final actor</td><td>Research config: centred score (+1 or -1), 0.5 to the answer agent, 1.0 split over every turn</td><td>Released rule by default, paper rule and shared rule as options</td></tr>
+        <tr><td>Step budget</td><td>Step cap S</td><td>10 steps, last step answer-only (terminal mode)</td><td>Same (real AI mode: 8)</td></tr>
+        <tr><td>Replays</td><td>Alg. 1: replay with rollback until no bankruptcy</td><td>Research config: 2 trials, survivors' wealth restored, bids kept</td><td>Same (real AI mode: 1 trial)</td></tr>
+        <tr><td>Rent, bankruptcy</td><td>Sec. 2.3, Alg. 1</td><td>0.2 every 3 tasks, removed below zero</td><td>Same, money x100</td></tr>
+        <tr><td>Births</td><td>Sec. 2.3: mutate the richest, amend the failed</td><td>p<sub>a</sub> = p<sub>b</sub> = 0.334 after bankruptcy, 2 births every 3 tasks (50% copy), refill by copying the richest, role recovery</td><td>Same</td></tr>
+        <tr><td>Mutate (copy)</td><td>LLM proposes a small variation</td><td><code>GOOD_AGENT_BIRTH_PROMPT</code></td><td>Toy: small random change. Real AI: that prompt</td></tr>
+        <tr><td>Amend (repair)</td><td>LLM fixes the failure mode</td><td><code>BAD_AGENT_BIRTH_PROMPT</code> with the task, the right answer and the trace</td><td>Toy: reads the failure trace and fixes that weakness. Real AI: that prompt</td></tr>
+        <tr><td>Testing</td><td>Alg. 2: frozen, no money</td><td><code>_eval_forward</code></td><td>Same, 200 fixed test problems, same dice at every checkpoint</td></tr>
+      </tbody></table></div>
+      <div class="hood-grid">
+        <div class="panel"><h3>Tests</h3>
+          <p class="cap">38 tests, at least one per rule, including my article's ledger. The real AI mode's plumbing has its own test with a stand-in model. The last tests run hundreds of training runs, so they take a few seconds.</p>
+          <div class="row" style="margin-top:10px"><button class="btn primary" id="bTests">Run all tests</button><span id="testSum" class="muted"></span></div>
+          <ul id="testOut"></ul></div>
+        <div class="panel"><h3>What the toy version is not</h3>
+          <ul>
+            <li>Its agents are not language models. A "prompt" is a wake-up list plus one or two numbers, and the task is a made-up multi-step problem where each step succeeds with some chance. So it can test the economics, not reasoning.</li>
+            <li>Its prompt rewriter is a rule: copies get small random changes, repairs fix the weakness the failure trace shows. A real model can invent new strategies. Mine cannot.</li>
+            <li>Toy settings I chose: the step success rates per level, how much a plan helps, the starting team's skill ranges and how big a repair is. Everything economic comes from the paper or the released research config.</li>
+            <li>No literature role, no tools, no cross-domain transfer, no generalist agent.</li>
+          </ul>
+          <h3 style="margin-top:16px">Where the paper and the code differ</h3>
+          <ul>
+            <li>Reward: Eq. 1 pays only the final actor on success. The research config pays everyone on the path, and charges them all when the answer is wrong.</li>
+            <li>Bankruptcy: the code uses below zero (Sec. 2.3). Alg. 1 says zero or less.</li>
+            <li>Bids: the research config uses <code>fixed</code>, so every veteran ends up with the same bid.</li>
+            <li>Refill: Alg. 1 mutates a starting agent. The code mutates the richest.</li>
+            <li>Rollback: the code restores survivors' wealth after every bankrupt trial, including the last one.</li>
+          </ul></div>
+      </div>
+    </section>
+  </main>
+  <footer><p>Built by Krishiv Rambhia for the TKS Build stage, October 2026. Re-implements Qi et al., <a href="https://arxiv.org/abs/2606.02859" target="_blank" rel="noopener">Economy of Minds</a> (arXiv 2606.02859), checked against the authors' <a href="https://github.com/zhentingqi/EoM" target="_blank" rel="noopener">released code</a> (MIT licence), whose prompts the real AI mode adapts. MATH problems from Hendrycks et al. (2021), via the MATH-500 split in openai/prm800k. Builds on Baum and Durdanovic's Hayek machine (2000).</p></footer>
+</div>
+
+<script>
+/*__ENGINE__*/
+</script>
+<script>
+/*__LLM__*/
+</script>
+<script>
+/*__TESTS__*/
+</script>
+<script>
+/*__APP__*/
+</script>

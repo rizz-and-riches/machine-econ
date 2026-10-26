@@ -1,0 +1,1369 @@
+<title>Economy of Minds Rebuilt</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A browser re-implementation of the Economy of Minds engine: auctions, bucket-brigade payments, rent, bankruptcy and evolution, running live.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
+<style>
+/* Layout: a trading-floor console. The live arena is the hero, the ledger and controls sit beside it,
+   then the experiments read top to bottom like a lab notebook. Brass is money and nothing else. */
+:root {
+  color-scheme: dark;
+  --ink: #121925;        /* page ground, blue-biased ink */
+  --panel: #18212f;      /* raised surfaces */
+  --raise: #1f2a3b;      /* hover, active column */
+  --line: #2b384d;       /* hairlines, grid */
+  --fg: #e9ecf2;         /* text */
+  --muted: #95a1b5;      /* secondary text */
+  --brass: #e6b65d;      /* the one accent: credits, bids, prices */
+  --brass-soft: rgba(230, 182, 93, 0.16);
+  --fail: #e27d6f;       /* semantic: a step failed, an agent went bankrupt */
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --r: 10px;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--ink); color: var(--fg); }
+body { font-family: var(--body); font-size: 16px; line-height: 1.5; }
+.wrap { max-width: 1320px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); font-stretch: 112%; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(1.6rem, 3.2vw, 2.4rem); font-weight: 760; line-height: 1.05; }
+h2 { font-size: clamp(1.35rem, 2.4vw, 1.85rem); font-weight: 720; line-height: 1.1; }
+h3 { font-size: 1.05rem; font-weight: 680; font-stretch: 100%; }
+p { margin: 0; }
+a { color: var(--fg); text-decoration-color: var(--brass); text-underline-offset: 3px; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.brass { color: var(--brass); }
+
+/* ---------- header ---------- */
+.top { padding-block: 22px 14px; display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 14px 28px; }
+.top .q { color: var(--muted); font-size: 1.05rem; margin-top: 6px; max-width: 60ch; }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 26px; margin: 0; }
+.stats div { display: flex; flex-direction: column; min-width: 0; }
+.stats dt { color: var(--muted); font-size: 0.82rem; }
+.stats dd { margin: 0; font-family: var(--display); font-stretch: 100%; font-weight: 700; font-size: 1.45rem; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.stats dd small { font-size: 0.8rem; color: var(--muted); font-weight: 500; }
+nav.jump { display: flex; flex-wrap: wrap; gap: 6px 18px; padding-block: 0 14px; border-bottom: 1px solid var(--line); }
+nav.jump a { color: var(--muted); text-decoration: none; font-size: 0.95rem; }
+nav.jump a:hover { color: var(--fg); }
+
+section { padding-block: 26px; border-bottom: 1px solid var(--line); }
+section > .head { display: grid; gap: 6px; margin-bottom: 16px; max-width: 75ch; }
+section > .head p { color: var(--muted); }
+
+/* ---------- live arena ---------- */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; }
+.arena-wrap { position: relative; background: var(--panel); border-radius: var(--r); overflow: hidden; min-width: 0; display: flex; flex-direction: column; }
+#arena { display: block; width: 100%; flex: 1 1 auto; height: auto; min-height: 480px; cursor: default; touch-action: manipulation; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; padding: 8px 14px 10px; font-size: 0.85rem; color: var(--muted); border-top: 1px solid var(--line); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+.side { display: grid; gap: 12px; align-content: start; min-width: 0; }
+.transport { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.btn { background: var(--raise); border: 1px solid var(--line); border-radius: 8px; padding: 7px 12px; cursor: pointer; line-height: 1.2; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--brass); color: #1b1408; border-color: var(--brass); font-weight: 700; min-width: 86px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.seg button { background: transparent; border: 0; padding: 7px 10px; cursor: pointer; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--raise); color: var(--fg); font-weight: 700; }
+.panel { background: var(--panel); border-radius: var(--r); padding: 14px; min-width: 0; }
+.panel h3 { margin-bottom: 8px; }
+#inspector { min-height: 220px; }
+#inspector .kv { display: grid; grid-template-columns: auto 1fr; gap: 3px 14px; font-size: 0.95rem; margin: 8px 0; }
+#inspector .kv dt { color: var(--muted); }
+#inspector .kv dd { margin: 0; font-variant-numeric: tabular-nums; }
+#inspector .why { border-left: 3px solid var(--brass); padding-left: 10px; margin-top: 8px; }
+#inspector .why p + p { margin-top: 6px; }
+.eq { font-variant-numeric: tabular-nums; white-space: nowrap; }
+#ledger ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; max-height: 260px; overflow-y: auto; font-size: 0.92rem; }
+#ledger li button { all: unset; display: block; width: 100%; box-sizing: border-box; padding: 4px 8px; border-radius: 6px; cursor: pointer; font-variant-numeric: tabular-nums; }
+#ledger li button:hover, #ledger li button[aria-current="true"] { background: var(--raise); }
+#ledger li button:focus-visible { outline: 2px solid var(--brass); }
+.tag-fail { color: var(--fail); }
+
+.below { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+.below .controls-panel { grid-column: 1 / -1; }
+.chart { display: block; width: 100%; height: 280px; }
+.chart.tall { height: 300px; }
+.cap { font-size: 0.86rem; color: var(--muted); margin-top: 6px; }
+
+/* ---------- controls ---------- */
+.controls { display: grid; gap: 14px 28px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); align-items: start; }
+.controls .sliders { display: grid; gap: 12px; }
+.controls .actions { display: grid; gap: 10px; align-content: start; }
+.ctl { display: grid; gap: 2px; }
+.ctl label { display: flex; justify-content: space-between; gap: 10px; font-size: 0.92rem; }
+.ctl label output { color: var(--brass); font-variant-numeric: tabular-nums; font-weight: 700; }
+.ctl small { color: var(--muted); font-size: 0.8rem; }
+input[type="range"] { width: 100%; accent-color: var(--brass); }
+.switches { display: grid; gap: 6px; }
+.switch { display: flex; align-items: center; justify-content: space-between; gap: 10px; background: transparent; border: 0; padding: 4px 0; cursor: pointer; text-align: left; }
+.switch .track { width: 40px; height: 22px; border-radius: 11px; background: var(--line); position: relative; flex: none; transition: background .15s; }
+.switch .track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--muted); transition: transform .15s, background .15s; }
+.switch[aria-checked="true"] .track { background: var(--brass-soft); }
+.switch[aria-checked="true"] .track::after { transform: translateX(18px); background: var(--brass); }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.field { display: flex; gap: 8px; align-items: center; font-size: 0.92rem; }
+.field input { width: 84px; background: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; }
+
+/* predict overlay */
+#predict { position: absolute; inset: 0; background: rgba(18, 25, 37, 0.9); display: grid; place-items: center; padding: 16px; }
+#predict .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 18px; max-width: 520px; width: 100%; display: grid; gap: 12px; }
+#predict .choices { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+#predict .choice { text-align: left; padding: 9px 10px; }
+#predict .choice b { display: block; }
+#predict .choice[data-win="true"] { border-color: var(--brass); }
+
+/* ---------- ablation lanes ---------- */
+.lanes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+.lane { background: var(--panel); border-radius: var(--r); padding: 12px; display: grid; gap: 6px; min-width: 0; }
+.lane h3 { font-size: 0.98rem; }
+.lane .big { font-family: var(--display); font-weight: 750; font-size: 1.9rem; line-height: 1; font-variant-numeric: tabular-nums; }
+.lane canvas { width: 100%; height: 190px; display: block; }
+.lane.full { outline: 1px solid var(--brass); }
+.compare { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+.bars { display: grid; gap: 8px; margin-top: 10px; }
+.bar { display: grid; grid-template-columns: 9.5em minmax(0, 1fr) 4.2em; gap: 10px; align-items: center; font-size: 0.93rem; }
+.bar .track { height: 18px; background: var(--ink); border-radius: 4px; position: relative; }
+.bar .fill { position: absolute; inset: 0 auto 0 0; background: var(--fg); border-radius: 4px; opacity: 0.85; }
+.bar .err { position: absolute; top: 50%; height: 2px; background: var(--brass); transform: translateY(-50%); }
+.bar .err::before, .bar .err::after { content: ""; position: absolute; top: -5px; width: 2px; height: 12px; background: var(--brass); }
+.bar .err::before { left: 0; } .bar .err::after { right: 0; }
+.bar.lead .fill { background: var(--brass); }
+.bar b { text-align: right; font-variant-numeric: tabular-nums; }
+.note { margin-top: 14px; max-width: 75ch; display: grid; gap: 8px; }
+
+/* ---------- article ledger ---------- */
+.ledger-demo { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; }
+.trio { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; align-items: stretch; }
+.acct { background: var(--panel); border-radius: var(--r); padding: 12px; display: grid; gap: 2px; text-align: center; transition: box-shadow .2s; min-width: 0; }
+.acct.hot { box-shadow: inset 0 0 0 2px var(--brass); }
+.acct .who { font-family: var(--display); font-weight: 750; font-size: 1.3rem; }
+.acct .bal { font-family: var(--display); font-weight: 700; font-size: 1.9rem; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.acct small { color: var(--muted); font-size: 0.8rem; }
+.acct.outside { background: transparent; border: 1px dashed var(--line); }
+#ledgerSteps { list-style: none; padding: 0; margin: 0; display: grid; gap: 4px; counter-reset: s; }
+#ledgerSteps li { padding: 6px 10px; border-radius: 6px; background: var(--panel); font-variant-numeric: tabular-nums; }
+#ledgerSteps li.now { box-shadow: inset 3px 0 0 var(--brass); }
+.checkline { margin-top: 10px; font-variant-numeric: tabular-nums; }
+
+/* ---------- under the hood ---------- */
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.93rem; min-width: 720px; }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { color: var(--muted); font-weight: 700; }
+td code, li code { font-size: 0.86em; background: var(--panel); padding: 1px 5px; border-radius: 4px; }
+.hood-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; margin-top: 18px; }
+.hood-grid ul { margin: 8px 0 0; padding-left: 1.2em; display: grid; gap: 6px; }
+#testOut { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 3px; font-size: 0.9rem; max-height: 420px; overflow-y: auto; }
+#testOut li { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); gap: 8px; }
+#testOut .p { color: var(--brass); font-weight: 700; }
+#testOut .f { color: var(--fail); font-weight: 700; }
+footer { padding-block: 24px 40px; color: var(--muted); font-size: 0.9rem; }
+
+@media (max-width: 1020px) {
+  .stage { grid-template-columns: minmax(0, 1fr); }
+  .lanes { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 680px) {
+  #arena { min-height: 400px; }
+  .below, .compare, .ledger-demo, .hood-grid { grid-template-columns: minmax(0, 1fr); }
+  .trio { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .trio .outside { grid-column: span 3; }
+  .stats dd { font-size: 1.2rem; }
+  .bar { grid-template-columns: 7.5em minmax(0, 1fr) 3.6em; }
+}
+@media (max-width: 420px) { .lanes { grid-template-columns: minmax(0, 1fr); } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Economy of Minds, rebuilt</h1>
+      <p class="q">Can a market make a team of weak AI agents more capable over time? Agents bid for turns, pay the agent before them, pay rent, go bankrupt, and breed. Everything below runs live.</p>
+    </div>
+    <dl class="stats" aria-live="polite">
+      <div><dt>Task</dt><dd id="sTask">0</dd></div>
+      <div><dt>Test success</dt><dd id="sSucc">0%</dd></div>
+      <div><dt>Winning skills (D, E, C)</dt><dd id="sSkill">-</dd></div>
+      <div><dt>Agents</dt><dd id="sPop">0</dd></div>
+      <div><dt>Bankruptcies</dt><dd id="sBank">0</dd></div>
+    </dl>
+  </header>
+  <nav class="jump" aria-label="Sections">
+    <a href="#live">Live economy</a>
+    <a href="#ablation">Turn parts off</a>
+    <a href="#ledger-demo">Follow the credits</a>
+    <a href="#hood">Under the hood</a>
+  </nav>
+
+  <main>
+    <section id="live" aria-label="Live economy">
+      <div class="stage">
+        <div class="arena-wrap">
+          <canvas id="arena" aria-label="Live view of agents bidding and paying each other. Use the ledger list for a text version."></canvas>
+          <div class="legend">
+            <span><i class="dot" style="background:#f3f5f9"></i>Bright = high skill</span>
+            <span><i class="dot" style="background:#3a4558"></i>Dark = low skill</span>
+            <span>Bigger = more credits</span>
+            <span><i class="dot" style="background:var(--brass)"></i>Brass = credits and bids</span>
+            <span>Top of each column = highest bid</span>
+          </div>
+          <div id="predict" hidden>
+            <div class="card" role="dialog" aria-modal="false" aria-labelledby="predTitle">
+              <h3 id="predTitle">Predict the winner</h3>
+              <p id="predText" class="muted"></p>
+              <div class="choices" id="predChoices"></div>
+              <p id="predReveal" hidden></p>
+              <div class="row"><button class="btn primary" id="predGo" hidden>Continue</button><button class="btn" id="predOff">Stop asking</button></div>
+            </div>
+          </div>
+        </div>
+
+        <aside class="side">
+          <div class="transport">
+            <button class="btn primary" id="bPlay">Pause</button>
+            <button class="btn" id="bStep" title="Run one task">Step</button>
+            <div class="seg" role="group" aria-label="Speed" id="speedSeg">
+              <button data-s="1">1x</button><button data-s="4" aria-pressed="true">4x</button><button data-s="20">20x</button><button data-s="max">Max</button>
+            </div>
+            <button class="btn" id="bReplay" title="Replay the last task slowly">Replay last task</button>
+            <button class="btn" id="bSkip" title="Run 100 tasks instantly">+100 tasks</button>
+          </div>
+          <div class="panel" id="inspector" aria-live="polite"></div>
+          <div class="panel" id="ledger">
+            <h3>Ledger, last task</h3>
+            <ol id="ledgerList"></ol>
+          </div>
+        </aside>
+      </div>
+
+      <div class="below">
+        <div class="panel">
+          <h3>Is the team getting more capable?</h3>
+          <canvas class="chart" id="chartSucc" aria-label="Test success over tasks"></canvas>
+          <p class="cap">Test success = chance the frozen team finishes a task, using the agents that would win each auction now (paper Alg. 2). Dotted lines mark where you changed a setting.</p>
+        </div>
+        <div class="panel">
+          <h3>Do prices find value? (Theorem 1)</h3>
+          <canvas class="chart" id="chartPrice" aria-label="Price versus value per step"></canvas>
+          <p class="cap"><span class="brass">Brass</span> = winning bid (the price of a turn). Grey = what that turn is worth: skill x what the next step pays. The paper predicts the price settles at or just below the value.</p>
+        </div>
+        <div class="panel controls-panel">
+          <h3>Change the rules</h3>
+          <div class="controls">
+            <div class="sliders">
+            <div class="ctl"><label for="cReward">Reward for a finished task <output id="oReward"></output></label><input type="range" id="cReward" min="10" max="100" step="5"><small>Paid to the final actor when all three steps work.</small></div>
+            <div class="ctl"><label for="cRent">Rent <output id="oRent"></output></label><input type="range" id="cRent" min="0" max="8" step="0.5"><small>Charged to every agent every 7 tasks.</small></div>
+            <div class="ctl"><label for="cEps">Newcomer premium (epsilon) <output id="oEps"></output></label><input type="range" id="cEps" min="0.1" max="3" step="0.1"><small>A newcomer bids the top bid plus this, so it gets one fair test.</small></div>
+            <div class="ctl"><label for="cSigma">Mutation size <output id="oSigma"></output></label><input type="range" id="cSigma" min="0.01" max="0.3" step="0.01"><small>How far a copy's skill can drift from its parent.</small></div>
+            </div>
+            <div class="sliders">
+            <div class="ctl"><label for="cBirth">New agent every <output id="oBirth"></output></label><input type="range" id="cBirth" min="7" max="70" step="7"><small>Scheduled births, on top of births after bankruptcies.</small></div>
+            </div>
+            <div class="switches">
+              <button class="switch" role="switch" id="tAuction" aria-checked="true"><span>Auction picks who acts</span><span class="track"></span></button>
+              <button class="switch" role="switch" id="tExplore" aria-checked="true"><span>Exploration (amend the weak)</span><span class="track"></span></button>
+              <button class="switch" role="switch" id="tExploit" aria-checked="true"><span>Exploitation (copy the rich)</span><span class="track"></span></button>
+              <button class="switch" role="switch" id="tShare" aria-checked="false"><span>Share reward along the chain (released code)</span><span class="track"></span></button>
+              <button class="switch" role="switch" id="tFixed" aria-checked="false"><span>Everyone bids the same (research config)</span><span class="track"></span></button>
+              <button class="switch" role="switch" id="tPredict" aria-checked="false"><span>Ask me to predict each winner</span><span class="track"></span></button>
+            </div>
+            <div class="actions">
+            <div class="row">
+              <button class="btn" id="bOver" title="Lemma 2: an agent that bids more than its turn is worth">Add an overbidder</button>
+              <button class="btn" id="bDefaults">Reset rules</button>
+            </div>
+            <div class="row">
+              <span class="field"><label for="cSeed">Seed</label><input id="cSeed" type="number" min="1" step="1"></span>
+              <button class="btn" id="bRestart">Restart from task 0</button>
+            </div>
+            <p class="cap">Changes apply from the next task, so you can watch the chart react. Restart to begin again from weak agents.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="ablation" aria-label="Turn parts off">
+      <div class="head">
+        <h2>Turn parts off</h2>
+        <p>The paper's Table 2 removes one part at a time. Same seeds, same weak starting agents, four versions racing side by side for 1,500 tasks.</p>
+      </div>
+      <div class="lanes" id="lanes"></div>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="bLanes">Race again with a new seed</button>
+        <span class="muted" id="laneSeedLbl"></span>
+      </div>
+      <p class="cap" style="max-width:75ch">Each lane runs 8 economies with different seeds. The dots show one of them. The line and the big number average all 8, because a single seed is noisy and can come out in a surprising order. The 30-seed result below is the one to quote.</p>
+      <div class="compare">
+        <div class="panel">
+          <h3>This rebuild, toy task</h3>
+          <p class="cap" id="toyCap">Mean test success over the last 20% of training, 30 seeds x 1,500 tasks. Brass whiskers = 1 standard deviation.</p>
+          <div class="bars" id="toyBars"></div>
+          <div class="row" style="margin-top:12px"><button class="btn" id="bBatch">Re-run all 30 seeds now</button><span class="muted" id="batchStatus"></span></div>
+        </div>
+        <div class="panel">
+          <h3>The paper, finance task</h3>
+          <p class="cap">Table 2, Finance-Agent-Bench, mean accuracy %. Different task and units, so compare the order, not the size.</p>
+          <div class="bars" id="paperBars"></div>
+        </div>
+      </div>
+      <div class="note">
+        <p><b>Same:</b> the full system beats every version with a part removed, in both.</p>
+        <p><b>Different:</b> the paper's worst cut is exploration. Here it is exploitation. The likely reason is how "amend" works. In the paper, an LLM rewrites a failed agent's prompt using its failure trace. Here, amending can only draw a new random skill, so exploration is blind and copying the rich does more of the work.</p>
+      </div>
+    </section>
+
+    <section id="ledger-demo" aria-label="Follow the credits">
+      <div class="head">
+        <h2>Follow the credits</h2>
+        <p>The three-agent story from my Learn Article, run through the real engine. A diagnoses, B edits, C checks. Bids are 2, 4 and 7. Everyone starts with 10. A finished task pays 10 to the final actor.</p>
+      </div>
+      <div class="ledger-demo">
+        <div>
+          <div class="trio" id="trio"></div>
+          <div class="row" style="margin-top:12px">
+            <div class="seg" role="group" aria-label="Story path" id="pathSeg">
+              <button data-p="ok" aria-pressed="true">Program works</button><button data-p="bug">Bug slips through</button>
+            </div>
+            <button class="btn primary" id="bLedgerNext">Next step</button>
+            <button class="btn" id="bLedgerReset">Start over</button>
+          </div>
+          <p class="checkline" id="ledgerCheck"></p>
+        </div>
+        <ol id="ledgerSteps"></ol>
+      </div>
+    </section>
+
+    <section id="hood" aria-label="Under the hood">
+      <div class="head">
+        <h2>Under the hood</h2>
+        <p>Every mechanism, where it comes from in the paper and the released code, and the test that checks it.</p>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Mechanism</th><th>Paper</th><th>Released code (commit d272266)</th><th>What this rebuild does</th></tr></thead>
+          <tbody>
+            <tr><td>Wake-up trigger</td><td>Sec. 2.2, eligible set E<sub>t</sub></td><td>An LLM judges the workspace for each agent (<code>population.get_active</code>)</td><td>Agents wake when the task reaches their stage</td></tr>
+            <tr><td>Auction</td><td>Sec. 2.2, highest bid wins, random ties</td><td><code>random.choice(top_bidders)</code> in <code>mas.py</code></td><td>Same</td></tr>
+            <tr><td>Payment</td><td>Eq. 1, winner pays its bid to the previous winner, first actor pays the house</td><td>PAYMENT block in <code>mas.py</code></td><td>Same</td></tr>
+            <tr><td>Reward</td><td>Alg. 1 line 5, outcome reward to the final actor</td><td>All released configs use <code>path_reward_and_stepwise_reward</code>, which can split reward along the chain</td><td>Paper rule by default, simplified chain split as a switch</td></tr>
+            <tr><td>Newcomer bid</td><td>Eq. 2, top competing bid + epsilon, then frozen</td><td><code>fixed_with_eps</code> (CloudCast), but the research config uses <code>fixed</code></td><td>Eq. 2 by default, research rule as a switch</td></tr>
+            <tr><td>Bankruptcy</td><td>Sec. 2.3 says below zero, Alg. 1 says zero or less</td><td><code>check_bankruptcy</code>: <code>wealth &lt; 0</code></td><td>Below zero, like the code</td></tr>
+            <tr><td>Rent</td><td>Alg. 1, every K<sub>r</sub> tasks</td><td>CloudCast: 0.02 every episode (up to 22 auctions)</td><td>2 every 7 tasks (21 auctions), money scaled x100</td></tr>
+            <tr><td>Births</td><td>Sec. 2.3, exploit the richest, amend the weak</td><td><code>_resolve_bankruptcy_births</code>, <code>_periodic_births</code>, p<sub>a</sub> = p<sub>b</sub> = 0.4, periodic good = 0.6</td><td>Same probabilities, births every 21 tasks</td></tr>
+            <tr><td>Role recovery</td><td>Not in the paper</td><td><code>_ensure_necessary_roles_exist</code> keeps one agent per role</td><td>Same</td></tr>
+            <tr><td>Testing</td><td>Alg. 2, frozen population, no payments</td><td><code>_eval_forward</code></td><td>Exact success chance of the current top bidders</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="hood-grid">
+        <div class="panel">
+          <h3>Tests</h3>
+          <p class="cap">30 tests, one or more per mechanism, including my article's ledger (12, 13, 13 and 12, 13, 3). The last three run hundreds of seeded economies, so they take a few seconds.</p>
+          <div class="row" style="margin-top:10px"><button class="btn primary" id="bTests">Run all tests</button><span id="testSum" class="muted"></span></div>
+          <ul id="testOut"></ul>
+        </div>
+        <div class="panel">
+          <h3>What this rebuild is not</h3>
+          <ul>
+            <li>No language models. An agent's prompt is replaced by one number, its skill. So none of the paper's scores (MATH, finance, CloudCast) can be reproduced here.</li>
+            <li>The improving is done by mutation, which is skill plus random noise. The economy only decides which variants survive. That is selection, and it is the part the paper credits to the market.</li>
+            <li>Amending a failed agent draws a new random skill. The paper's LLM uses the failure trace. That is the gap I expect explains the different ablation order.</li>
+            <li>The toy task is a fixed three-step chain. Roles, topology changes and transfer to new problems are not modelled.</li>
+            <li>I changed the rent and birth schedule after a first run plateaued at about 30%. The reason: CloudCast's schedule is per episode of up to 22 auctions, my task has 3. Scaling to 21 auctions fixed it. Both runs are in my build notes.</li>
+          </ul>
+          <h3 style="margin-top:16px">Where the paper and the code differ</h3>
+          <ul>
+            <li>Bankruptcy: code uses below zero (Sec. 2.3), Alg. 1 says zero or less.</li>
+            <li>Reward: Eq. 1 pays the final actor. Released configs can pay each step and split it along the recent chain.</li>
+            <li>Bids: the research config uses <code>fixed</code>, so every veteran settles to the same bid and the auction becomes a coin flip among them. Flip the switch above to see it.</li>
+            <li>Replenish: Alg. 1 mutates a starting template, the code mutates the richest agent.</li>
+          </ul>
+          <h3 style="margin-top:16px">Something to watch for</h3>
+          <ul>
+            <li>Most births land in the Check column. Copying the richest agent favours the role that collects the reward. Diagnose and Edit mostly improve through exploration and bankruptcy. The paper also reports births piling up in a few roles (App. E.7).</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Built by Krishiv Rambhia for the TKS Build stage, October 2026. Re-implements the engine of Qi et al., <a href="https://arxiv.org/abs/2606.02859" target="_blank" rel="noopener">Economy of Minds</a> (arXiv 2606.02859), checked against the authors' <a href="https://github.com/zhentingqi/EoM" target="_blank" rel="noopener">released code</a>. Builds on Baum and Durdanovic's Hayek machine (2000).</p>
+  </footer>
+</div>
+
+<script>
+/*__ENGINE__*/
+</script>
+<script>
+/*__TESTS__*/
+</script>
+<script>
+(function () {
+'use strict';
+const E = window.EoM;
+const RECORDED = /*__RESULTS__*/;
+const ROLES = E.ROLES, SHORT = E.ROLE_SHORT, LABEL = E.ROLE_LABEL;
+const $ = (id) => document.getElementById(id);
+const reduceMotion = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { ink: css('--ink'), panel: css('--panel'), raise: css('--raise'), line: css('--line'), fg: css('--fg'), muted: css('--muted'), brass: css('--brass'), fail: css('--fail') };
+const f1 = (x) => (Math.round(x * 10) / 10).toFixed(1);
+const f2 = (x) => (Math.round(x * 100) / 100).toFixed(2);
+const pct = (x) => Math.round(x * 100) + '%';
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2);
+function skillColor(q, a) {
+  const lo = [50, 61, 79], hi = [243, 245, 249];
+  const t = clamp(q, 0, 1);
+  const c = lo.map((v, i) => Math.round(lerp(v, hi[i], t)));
+  return 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (a == null ? 1 : a) + ')';
+}
+function fit(canvas) {
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = canvas.clientWidth, h = canvas.clientHeight;
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+const FONT = (px, w) => (w || 400) + ' ' + px + 'px "Atkinson Hyperlegible", system-ui, sans-serif';
+const DFONT = (px, w) => (w || 700) + ' ' + px + 'px "Archivo", "Arial Narrow", system-ui, sans-serif';
+
+// ======================= state =======================
+const RULE_DEFAULTS = { reward: 40, rent: 2, epsilon: 0.5, mutationSigma: 0.08, birthInterval: 21, auction: true, exploration: true, exploitation: true, rewardScheme: 'outcome', bidScheme: 'fixed_with_eps' };
+const rules = Object.assign({}, RULE_DEFAULTS);
+let seed = 7;
+let eco = null;
+const vis = new Map();
+let houseDisp = 0;
+let queue = [], cur = null;
+let playing = true, speed = reduceMotion ? 'max' : 4;
+let lastRec = null, lastSnap = null, replaying = false, playingBeforeReplay = true;
+let hist = [];           // {t, s, prices}
+let markers = [];        // {t, label}
+let selected = null;     // {kind:'agent', id} | {kind:'event', idx} | {kind:'house'} | {kind:'eval'}
+let predictOn = false, awaiting = false, stepping = false;
+const NOUN = { diagnose: 'diagnoser', edit: 'editor', check: 'checker' };
+const token = { stage: 0, x: 0, fail: false, done: false, show: false };
+let floats = [];
+let activeWinner = null, activeAuction = null;
+
+function newEconomy() {
+  eco = new E.Economy(Object.assign({ seed }, rules));
+  vis.clear(); houseDisp = 0; queue = []; cur = null; lastRec = null; lastSnap = null;
+  replaying = false; floats = []; activeWinner = null; activeAuction = null;
+  hist = [{ t: 0, s: eco.expectedSuccess(), prices: eco.prices() }];
+  markers = [];
+  for (const a of eco.agents) makeVis(a, null, 1);
+  layoutTargets(true);
+  selected = null;
+  renderInspector(); renderLedger(); updateStats(); drawCharts();
+}
+
+function makeVis(a, near, scale) {
+  const v = { id: a.id, role: a.role, disp: a.wealth, x: near ? near.x : 0, y: near ? near.y : 0, tx: 0, ty: 0, scale: scale == null ? 1 : scale, alpha: 1, dying: false, born: !near, link: null };
+  vis.set(a.id, v);
+  return v;
+}
+function agentOf(id) { return eco.byId(id); }
+
+function syncVis() {
+  const alive = new Set(eco.agents.map((a) => a.id));
+  for (const id of [...vis.keys()]) if (!alive.has(id)) vis.delete(id);
+  for (const a of eco.agents) {
+    let v = vis.get(a.id);
+    if (!v) { v = makeVis(a, null, 1); v.born = true; }
+    v.disp = a.wealth; v.scale = 1; v.alpha = 1; v.dying = false; v.link = null;
+  }
+  houseDisp = eco.house;
+}
+
+// ======================= arena geometry =======================
+const arena = $('arena');
+let G = null; // geometry
+function geometry() {
+  const { w, h } = { w: arena.clientWidth, h: arena.clientHeight };
+  const side = Math.max(58, Math.min(110, w * 0.11));
+  const colW = (w - side * 2) / 3;
+  const railY = 40;
+  const headY = 82;
+  const top = 112;
+  const cols = ROLES.map((r, i) => ({ role: r, x0: side + i * colW, x1: side + (i + 1) * colW, cx: side + (i + 0.5) * colW }));
+  return { w, h, side, colW, railY, headY, top, cols, house: { x: side / 2, y: (top + h) / 2 }, evaluator: { x: w - side / 2, y: (top + h) / 2 } };
+}
+
+function roleList(role) {
+  const list = [...vis.values()].filter((v) => v.role === role);
+  list.sort((p, q) => {
+    const a = agentOf(p.id), b = agentOf(q.id);
+    const ba = a && a.bid != null ? a.bid : 1e9, bb = b && b.bid != null ? b.bid : 1e9;
+    return bb - ba || p.id - q.id;
+  });
+  return list;
+}
+
+function cellFor(n) {
+  const avail = G.h - G.top - 14;
+  let cols = Math.max(2, Math.floor(G.colW / 48));
+  cols = Math.min(cols, 4);
+  let rows = Math.ceil(n / cols);
+  let cell = Math.min(G.colW / cols, 64);
+  if (rows * cell > avail) cell = avail / Math.max(1, rows);
+  return { cols, cell };
+}
+
+function layoutTargets(snap) {
+  G = geometry();
+  for (const col of G.cols) {
+    const list = roleList(col.role);
+    const { cols, cell } = cellFor(Math.max(list.length, 4));
+    const gridW = cols * cell;
+    const x0 = col.cx - gridW / 2;
+    list.forEach((v, i) => {
+      const r = Math.floor(i / cols), c = i % cols;
+      v.tx = x0 + (c + 0.5) * cell;
+      v.ty = G.top + (r + 0.5) * cell;
+      v.cell = cell;
+      if (snap || (v.x === 0 && v.y === 0)) { v.x = v.tx; v.y = v.ty; }
+    });
+  }
+}
+function radius(v) {
+  const cell = v.cell || 40;
+  const k = (cell * 0.27) / Math.sqrt(70);
+  return clamp(Math.sqrt(Math.max(0, v.disp)) * k, 3.2, cell * 0.47) * v.scale;
+}
+function posOf(id) {
+  if (id === 'house') return { x: G.house.x, y: G.house.y };
+  if (id === 'eval') return { x: G.evaluator.x, y: G.evaluator.y };
+  const v = vis.get(id);
+  return v ? { x: v.x, y: v.y - (v.lift || 0) } : { x: G.w / 2, y: G.h / 2 };
+}
+function railX(stage) {
+  // 0 = task arrives, 1..3 = after each stage, used for the token
+  const xs = [G.side * 0.5, G.cols[0].cx, G.cols[1].cx, G.cols[2].cx, G.w - G.side * 0.5];
+  return xs[clamp(stage, 0, 4)];
+}
+
+// ======================= animation queue =======================
+const DUR = { auction: 560, pay: 560, act: 420, reward: 680, rent: 460, bankrupt: 560, birth: 560, end: 220 };
+function buildSteps(rec) {
+  const steps = [];
+  const kinds = ['auction', 'pay', 'act', 'reward', 'rent', 'bankrupt', 'birth'];
+  for (const ev of rec.events) if (kinds.includes(ev.type)) steps.push({ k: ev.type, ev, d: DUR[ev.type], t: 0 });
+  steps.push({ k: 'end', d: DUR.end, t: 0 });
+  return steps;
+}
+function speedFactor() { return replaying ? 0.7 : speed === 'max' ? 1000 : speed; }
+
+function snapshotVis() {
+  return { house: houseDisp, list: [...vis.values()].map((v) => Object.assign({}, v)) };
+}
+function restoreVis(s) {
+  vis.clear();
+  for (const v of s.list) vis.set(v.id, Object.assign({}, v));
+  houseDisp = s.house;
+}
+
+function startTask() {
+  lastSnap = snapshotVis();
+  const rec = eco.runEpisode();
+  lastRec = rec;
+  hist.push({ t: rec.episode, s: rec.testSuccess, prices: rec.prices });
+  queue = buildSteps(rec);
+  token.stage = 0; token.fail = false; token.done = false; token.show = true; token.x = railX(0);
+  thinHistory();
+}
+function thinHistory() {
+  if (hist.length > 8000) hist = hist.filter((_, i) => i % 2 === 0 || i === hist.length - 1);
+}
+
+function runInstant(n) {
+  queue = []; cur = null; activeWinner = null; activeAuction = null; token.show = false;
+  for (let i = 0; i < n; i++) {
+    if (i === n - 1) { syncVis(); layoutTargets(false); lastSnap = snapshotVis(); }
+    const rec = eco.runEpisode();
+    lastRec = rec;
+    hist.push({ t: rec.episode, s: rec.testSuccess, prices: rec.prices });
+  }
+  syncVis(); thinHistory();
+  renderLedger(); updateStats(); drawCharts();
+  if (selected && selected.kind === 'agent') renderInspector();
+}
+
+function onStart(st) {
+  const ev = st.ev;
+  switch (st.k) {
+    case 'auction':
+      activeAuction = ev; activeWinner = null;
+      if (predictOn && !replaying && speed !== 'max' && speed <= 4 && ev.bids.length > 1) askPrediction(ev);
+      break;
+    case 'pay': {
+      const w = vis.get(ev.from); if (w) w.disp -= ev.amount;
+      break;
+    }
+    case 'rent':
+      for (const v of vis.values()) if (!v.dying) v.disp -= ev.amount;
+      addFloat(G.w - G.side - 8, G.h - 12, 'Rent: ' + f1(ev.amount) + ' from each of ' + ev.n, C.muted, 'right');
+      break;
+    case 'bankrupt': {
+      const v = vis.get(ev.id); if (v) { v.dying = true; addFloat(v.x, v.y + radius(v) + 30, 'bankrupt', C.fail); }
+      break;
+    }
+    case 'birth': {
+      const a = agentOf(ev.id); const p = ev.parent != null ? vis.get(ev.parent) : null;
+      if (a && !vis.has(a.id)) {
+        const nv = makeVis(a, p || { x: G.cols[ROLES.indexOf(a.role)].cx, y: G.top }, 0);
+        nv.born = false; nv.link = p ? p.id : null; nv.kind = ev.kind;
+        nv.disp = eco.cfg.initialWealth;
+      }
+      break;
+    }
+  }
+}
+function onEnd(st) {
+  const ev = st.ev;
+  switch (st.k) {
+    case 'auction': activeWinner = ev.winner; break;
+    case 'pay':
+      if (ev.to === 'house') houseDisp += ev.amount;
+      else { const t = vis.get(ev.to); if (t) t.disp += ev.amount; }
+      break;
+    case 'act': {
+      const p = posOf(ev.id);
+      if (ev.success) { token.stage = ev.stage + 1; }
+      else { token.fail = true; const left = token.x < G.w / 2; addFloat(left ? Math.max(8, token.x - 10) : Math.min(G.w - 8, token.x + 10), G.railY + 26, 'step failed, chain breaks', C.fail, left ? 'left' : 'right'); }
+      break;
+    }
+    case 'reward': {
+      const t = vis.get(ev.to); if (t) t.disp += ev.amount;
+      token.done = true;
+      addFloat(G.w - 8, G.railY + 26, '+' + f1(ev.amount) + ' to ' + (agentOf(ev.to) || {}).name, C.brass, 'right');
+      break;
+    }
+    case 'bankrupt': vis.delete(ev.id); break;
+    case 'birth': { const v = vis.get(ev.id); if (v) { v.scale = 1; v.link = null; } break; }
+    case 'end':
+      syncVis(); activeWinner = null; activeAuction = null;
+      updateStats(); drawCharts(); if (!replaying) renderLedger();
+      if (selected && selected.kind === 'agent') renderInspector();
+      break;
+  }
+}
+
+function advance(dt) {
+  if (awaiting) return;
+  if (!playing && !replaying && !stepping) return;
+  if (speed === 'max' && !replaying) { runInstant(12); return; }
+  let budget = dt * speedFactor();
+  let guard = 0;
+  while (budget > 0 && guard++ < 400) {
+    if (!cur) {
+      if (!queue.length) {
+        if (replaying) { finishReplay(); return; }
+        if (stepping) { stepping = false; return; }
+        startTask();
+      }
+      cur = queue.shift(); cur.t = 0; onStart(cur);
+      if (awaiting) return;
+    }
+    const remain = cur.d - cur.t;
+    if (budget >= remain) { budget -= remain; cur.t = cur.d; const done = cur; cur = null; onEnd(done); }
+    else { cur.t += budget; budget = 0; }
+  }
+}
+
+function addFloat(x, y, text, color, align) { floats.push({ x, y, text, color, align: align || 'center', t0: performance.now(), dur: 1300 }); }
+
+// ======================= drawing the arena =======================
+function drawArena(now) {
+  const { ctx, w, h } = fit(arena);
+  G = geometry();
+  ctx.clearRect(0, 0, w, h);
+  const p = cur ? clamp(cur.t / cur.d, 0, 1) : 0;
+  const small = w < 520;
+
+  // columns
+  G.cols.forEach((col, i) => {
+    const hot = activeAuction && activeAuction.stage === i;
+    ctx.fillStyle = hot ? C.raise : 'rgba(0,0,0,0)';
+    ctx.fillRect(col.x0 + 3, G.headY - 22, col.x1 - col.x0 - 6, h - G.headY + 18);
+    ctx.fillStyle = C.fg; ctx.font = DFONT(small ? 14 : 17, 720); ctx.textAlign = 'center';
+    ctx.fillText(LABEL[col.role], col.cx, G.headY);
+    const top = eco.winnersFor(i)[0];
+    ctx.font = FONT(small ? 11 : 12.5);
+    ctx.fillStyle = C.brass;
+    ctx.fillText(top && top.bid != null ? 'price ' + f1(top.bid) : 'no price yet', col.cx, G.headY + 17);
+    if (i > 0) { ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(col.x0, G.headY - 22); ctx.lineTo(col.x0, h - 8); ctx.stroke(); }
+  });
+
+  // rail
+  ctx.strokeStyle = C.line; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(railX(0), G.railY); ctx.lineTo(railX(4), G.railY); ctx.stroke();
+  ctx.font = FONT(small ? 10.5 : 12); ctx.fillStyle = C.muted; ctx.textAlign = 'center';
+  ctx.fillText('task in', railX(0), G.railY - 12);
+  ctx.fillText('reward', railX(4), G.railY - 12);
+  for (let s = 1; s <= 3; s++) { ctx.fillStyle = C.line; ctx.beginPath(); ctx.arc(railX(s), G.railY, 4, 0, 7); ctx.fill(); }
+  if (token.show) {
+    let tx = railX(token.stage);
+    if (cur && cur.k === 'act' && cur.ev.success) tx = lerp(railX(cur.ev.stage), railX(cur.ev.stage + 1), ease(p));
+    if (cur && cur.k === 'reward') tx = railX(4);
+    if (token.done || (cur && cur.k === 'reward')) tx = railX(4);
+    token.x = tx;
+    const shake = cur && cur.k === 'act' && !cur.ev.success ? Math.sin(p * 30) * 4 * (1 - p) : 0;
+    ctx.save(); ctx.translate(tx + shake, G.railY);
+    ctx.fillStyle = token.fail ? C.fail : token.done ? C.brass : C.fg;
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(-9, -7, 18, 14, 3) : ctx.rect(-9, -7, 18, 14); ctx.fill();
+    ctx.fillStyle = C.ink; ctx.font = FONT(10, 700); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(token.fail ? 'x' : token.done ? 'ok' : 'job', 0, 0.5);
+    ctx.restore(); ctx.textBaseline = 'alphabetic';
+  }
+
+  // house and evaluator
+  drawStation(ctx, G.house.x, G.house.y, 'House', f1(houseDisp), 'first bids', small);
+  drawStation(ctx, G.evaluator.x, G.evaluator.y, 'Test', '+' + f1(eco.cfg.reward), 'if all 3 work', small);
+
+  // birth links
+  for (const v of vis.values()) {
+    if (v.link != null) {
+      const pv = vis.get(v.link); if (!pv) continue;
+      ctx.strokeStyle = C.muted; ctx.lineWidth = 1.2; ctx.setLineDash(v.kind === 'bad' ? [4, 4] : []);
+      ctx.beginPath(); ctx.moveTo(pv.x, pv.y); ctx.lineTo(v.x, v.y); ctx.stroke(); ctx.setLineDash([]);
+    }
+  }
+
+  // agents
+  const topIds = new Set(); ROLES.forEach((r, i) => eco.winnersFor(i).forEach((a) => topIds.add(a.id)));
+  for (const v of vis.values()) {
+    const a = agentOf(v.id);
+    const q = a ? a.q : 0.5;
+    if (v.dying && cur && cur.k === 'bankrupt' && cur.ev.id === v.id) v.alpha = 1 - p;
+    if (cur && cur.k === 'birth' && cur.ev.id === v.id) v.scale = ease(p);
+    v.lift = (activeWinner === v.id || (cur && cur.k === 'auction' && cur.ev.winner === v.id && p > 0.55)) ? 6 : 0;
+    const r = radius(v);
+    const y = v.y - v.lift;
+    ctx.globalAlpha = v.alpha;
+    ctx.fillStyle = skillColor(q);
+    ctx.beginPath(); ctx.arc(v.x, y, r, 0, 7); ctx.fill();
+    if (topIds.has(v.id) && eco.cfg.auction) { ctx.strokeStyle = C.fg; ctx.lineWidth = 1.4; ctx.beginPath(); ctx.arc(v.x, y, r + 3, 0, 7); ctx.stroke(); }
+    if (v.lift) { ctx.strokeStyle = C.brass; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(v.x, y, r + 4, 0, 7); ctx.stroke(); }
+    if (selected && selected.kind === 'agent' && selected.id === v.id) { ctx.strokeStyle = C.brass; ctx.setLineDash([3, 3]); ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(v.x, y, r + 8, 0, 7); ctx.stroke(); ctx.setLineDash([]); }
+    if (v.dying) { ctx.strokeStyle = C.fail; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(v.x - r, y - r); ctx.lineTo(v.x + r, y + r); ctx.moveTo(v.x + r, y - r); ctx.lineTo(v.x - r, y + r); ctx.stroke(); }
+    if (a && v.cell > 30) {
+      ctx.font = FONT(small ? 10 : 11); ctx.textAlign = 'center';
+      ctx.fillStyle = a.bid == null ? C.muted : C.brass;
+      ctx.fillText(a.bid == null ? 'new' : f1(a.bid), v.x, y + Math.max(r, 6) + 12);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  // bids rising during an auction
+  if (cur && cur.k === 'auction') {
+    for (const b of cur.ev.bids) {
+      const v = vis.get(b.id); if (!v) continue;
+      const rise = ease(Math.min(1, p * 1.6)) * 16;
+      ctx.globalAlpha = 1 - Math.max(0, (p - 0.75) / 0.25);
+      ctx.fillStyle = C.brass; ctx.font = FONT(small ? 11 : 12.5, 700); ctx.textAlign = 'center';
+      ctx.fillText(f1(b.bid), v.x, v.y - radius(v) - 6 - rise);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  // coins in flight
+  if (cur && (cur.k === 'pay' || cur.k === 'reward')) {
+    const from = cur.k === 'pay' ? posOf(cur.ev.from) : posOf('eval');
+    const to = posOf(cur.k === 'pay' ? cur.ev.to : cur.ev.to);
+    const e = ease(p);
+    const mx = (from.x + to.x) / 2, my = Math.min(from.y, to.y) - 40;
+    const x = (1 - e) * (1 - e) * from.x + 2 * (1 - e) * e * mx + e * e * to.x;
+    const y = (1 - e) * (1 - e) * from.y + 2 * (1 - e) * e * my + e * e * to.y;
+    ctx.fillStyle = C.brass; ctx.beginPath(); ctx.arc(x, y, 6.5, 0, 7); ctx.fill();
+    ctx.font = FONT(small ? 11.5 : 13, 700); ctx.textAlign = 'center';
+    ctx.fillText((cur.k === 'reward' ? '+' : '') + f1(cur.ev.amount), x, y - 11);
+  }
+
+  // floating notes
+  floats = floats.filter((f) => now - f.t0 < f.dur);
+  for (const f of floats) {
+    const t = (now - f.t0) / f.dur;
+    ctx.globalAlpha = 1 - t * t; ctx.fillStyle = f.color; ctx.font = FONT(small ? 11 : 12.5, 700); ctx.textAlign = f.align;
+    ctx.fillText(f.text, f.x, f.y - t * 14);
+    ctx.globalAlpha = 1;
+  }
+  if (replaying) { ctx.fillStyle = C.brass; ctx.font = FONT(12, 700); ctx.textAlign = 'left'; ctx.fillText('Replaying task ' + (lastRec ? lastRec.episode : ''), 10, h - 10); }
+  if (!playing && !replaying) { ctx.fillStyle = C.muted; ctx.font = FONT(12, 700); ctx.textAlign = 'left'; ctx.fillText('Paused', 10, h - 10); }
+}
+function drawStation(ctx, x, y, title, value, sub, small) {
+  ctx.textAlign = 'center';
+  ctx.strokeStyle = C.line; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+  const bw = Math.min(G.side - 10, 92), bh = 76;
+  ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - bw / 2, y - bh / 2, bw, bh, 8) : ctx.rect(x - bw / 2, y - bh / 2, bw, bh); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = C.fg; ctx.font = DFONT(small ? 12 : 14, 700); ctx.fillText(title, x, y - 14);
+  ctx.fillStyle = C.brass; ctx.font = FONT(small ? 12 : 14, 700); ctx.fillText(value, x, y + 6);
+  ctx.fillStyle = C.muted; ctx.font = FONT(small ? 9.5 : 10.5); ctx.fillText(sub, x, y + 24);
+}
+
+function moveToward(dt) {
+  const k = 1 - Math.pow(0.001, dt / 450);
+  for (const v of vis.values()) { v.x = lerp(v.x, v.tx, k); v.y = lerp(v.y, v.ty, k); }
+}
+
+// ======================= main loop =======================
+let last = performance.now();
+function frame(now) {
+  const dt = Math.min(64, now - last); last = now;
+  if (eco) {
+    advance(dt);
+    layoutTargets(false);
+    moveToward(dt);
+    drawArena(now);
+  }
+  laneTick();
+  requestAnimationFrame(frame);
+}
+
+// ======================= interaction: arena click =======================
+arena.addEventListener('click', (e) => {
+  const r = arena.getBoundingClientRect();
+  const x = e.clientX - r.left, y = e.clientY - r.top;
+  let best = null, bd = 1e9;
+  for (const v of vis.values()) {
+    const d = Math.hypot(v.x - x, v.y - y);
+    if (d < Math.max(radius(v) + 8, 16) && d < bd) { bd = d; best = v; }
+  }
+  if (best) selected = { kind: 'agent', id: best.id };
+  else if (Math.hypot(x - G.house.x, y - G.house.y) < 50) selected = { kind: 'house' };
+  else if (Math.hypot(x - G.evaluator.x, y - G.evaluator.y) < 50) selected = { kind: 'eval' };
+  else selected = null;
+  renderInspector();
+});
+arena.addEventListener('mousemove', (e) => {
+  const r = arena.getBoundingClientRect();
+  const x = e.clientX - r.left, y = e.clientY - r.top;
+  let hit = false;
+  for (const v of vis.values()) if (Math.hypot(v.x - x, v.y - y) < Math.max(radius(v) + 8, 16)) { hit = true; break; }
+  arena.style.cursor = hit ? 'pointer' : 'default';
+});
+
+// ======================= inspector =======================
+function originText(a) {
+  switch (a.kind) {
+    case 'founder': return 'Founder. One of the six weak starting agents.';
+    case 'good': return 'Copy of ' + (a.parentName || 'an agent') + ', the richest agent at the time (exploitation), with a small random change to its skill.';
+    case 'bad': return 'Amended from ' + (a.parentName || 'an agent') + ', which was poor or bankrupt (exploration). Here that means a fresh random skill.';
+    case 'template': return 'Fresh agent added to keep the population at its minimum.';
+    case 'overbidder': return 'Overbidder you added. It bids far more than its turn is worth (Lemma 2).';
+    default: return 'Scripted agent.';
+  }
+}
+function renderInspector() {
+  const el = $('inspector');
+  if (!eco) return;
+  if (!selected) {
+    el.innerHTML = '<h3>Tap an agent</h3><p class="muted">Each circle is one agent. Tap it to see its skill, its bid, its credits, and why it is winning or dying. Tap a line in the ledger below to see why that payment happened.</p>' +
+      '<div class="why"><p>The rule in one line: <b>a turn is worth skill x what the next step pays</b>. Agents that bid more than that lose credits and go bankrupt. Agents that bid less get rich and get copied.</p></div>';
+    return;
+  }
+  if (selected.kind === 'house') {
+    el.innerHTML = '<h3>The house</h3><p>The first agent in each task has nobody before it to pay, so its bid goes here (Eq. 1). The house holds <b class="brass num">' + f1(eco.house) + '</b> credits. Credits also leave the economy as rent: <b class="num">' + f1(eco.rentCollected) + '</b> so far.</p>';
+    return;
+  }
+  if (selected.kind === 'eval') {
+    el.innerHTML = '<h3>The test</h3><p>When all three steps succeed, the final actor (the checker) gets <b class="brass num">+' + f1(eco.cfg.reward) + '</b> (Alg. 1, line 5). This is the only place new credits enter. Paid out so far: <b class="num">' + f1(eco.totalReward) + '</b>.</p>';
+    return;
+  }
+  if (selected.kind === 'event') { renderEventExplain(selected.idx); return; }
+  const x = eco.explain(selected.id);
+  if (!x) { selected = null; renderInspector(); return; }
+  const a = x.agent;
+  const s = ROLES.indexOf(a.role);
+  const nextName = s < 2 ? LABEL[ROLES[s + 1]] + ' price' : 'reward';
+  let why = '';
+  if (!a.alive) {
+    why = '<p class="tag-fail">Went bankrupt at task ' + a.diedAt + '. Its credits fell below zero, so it was removed (code: <code>wealth &lt; 0</code>).</p>';
+  } else if (a.bid == null) {
+    why = '<p>It has not bid yet. At its first chance it will bid the top bid in ' + LABEL[a.role] + ' plus ' + f1(eco.cfg.epsilon) + ' (Eq. 2), so it is guaranteed one turn.</p>';
+  } else if (!eco.cfg.auction) {
+    why = '<p>The auction is switched off, so a random ' + LABEL[a.role] + ' agent acts each time. Bids still decide what it pays.</p>';
+  } else if (x.isTop) {
+    const m = x.margin;
+    why = '<p>It has the highest bid in ' + LABEL[a.role] + ', so it wins every ' + LABEL[a.role] + ' turn.</p>' +
+      '<p class="eq">Each turn it pays ' + f1(a.bid) + ' and earns on average ' + f2(a.q) + ' x ' + f1(x.next) + ' (' + nextName + ') = ' + f1(x.value) + '.</p>' +
+      (m >= 0 ? '<p>So it makes about <b class="brass">+' + f1(m) + '</b> per turn. It should survive and get copied.</p>'
+              : '<p class="tag-fail">So it loses about ' + f1(-m) + ' per turn. Its bid is above its value, so it will go bankrupt (Theorem 1).</p>');
+  } else {
+    const top = eco.winnersFor(s)[0];
+    const rentPerTask = eco.cfg.rent / Math.max(1, eco.cfg.rentInterval);
+    const left = rentPerTask > 0 ? Math.max(0, Math.round(a.wealth / rentPerTask)) : null;
+    why = '<p>It is outbid by ' + (top ? top.name + ' (bid ' + f1(top.bid) + ')' : 'another agent') + ', so it never gets a turn. It only pays rent.</p>' +
+      (left != null ? '<p class="eq">At ' + f1(eco.cfg.rent) + ' every ' + eco.cfg.rentInterval + ' tasks it has about ' + left + ' tasks left.</p>' : '');
+  }
+  el.innerHTML = '<h3>' + a.name + ', ' + NOUN[a.role] + '</h3>' +
+    '<p class="muted">' + originText(a) + '</p>' +
+    '<dl class="kv">' +
+    '<dt>Skill</dt><dd>' + f2(a.q) + ' <span class="muted">(succeeds ' + pct(a.q) + ' of the time)</span></dd>' +
+    '<dt>Bid</dt><dd class="brass">' + (a.bid == null ? 'not set yet' : f1(a.bid) + ' <span class="muted">fixed for life</span>') + '</dd>' +
+    '<dt>Credits</dt><dd>' + f1(a.wealth) + '</dd>' +
+    '<dt>Turns won</dt><dd>' + a.wins + ' <span class="muted">(' + a.successes + ' worked)</span></dd>' +
+    '<dt>Money in</dt><dd>' + f1(a.earned) + ' from the next agent, ' + f1(a.rewardIn) + ' reward</dd>' +
+    '<dt>Money out</dt><dd>' + f1(a.paid) + ' in bids, ' + f1(a.rentPaid) + ' rent</dd>' +
+    '<dt>Born</dt><dd>task ' + a.born + '</dd>' +
+    '</dl><div class="why">' + why + '</div>';
+}
+
+// ======================= ledger (last task) =======================
+function evLine(ev) {
+  const n = (id) => (id === 'house' ? 'the house' : (agentOf(id) || { name: '#' + id }).name);
+  switch (ev.type) {
+    case 'novice': return n(ev.id) + ' sets its bid: ' + f1(ev.high) + ' + ' + f1(ev.bid - ev.high) + ' = ' + f1(ev.bid);
+    case 'auction': return LABEL[ROLES[ev.stage]] + ': ' + n(ev.winner) + (ev.byAuction ? ' wins with ' + f1(ev.bids.find((b) => b.id === ev.winner).bid) : ' picked at random') + ' (' + ev.bids.length + ' bidder' + (ev.bids.length > 1 ? 's' : '') + ')';
+    case 'pay': return n(ev.from) + ' pays ' + n(ev.to) + ' ' + f1(ev.amount);
+    case 'act': return n(ev.id) + (ev.success ? ' succeeds' : ' fails, chain breaks');
+    case 'reward': return n(ev.to) + ' gets the reward, +' + f1(ev.amount);
+    case 'rent': return 'Rent: ' + f1(ev.amount) + ' from each of ' + ev.n + ' agents';
+    case 'bankrupt': return n(ev.id) + ' goes bankrupt (' + f1(ev.wealth) + ')';
+    case 'birth': return n(ev.id) + ' is born: ' + (ev.kind === 'good' ? 'copy of ' + n(ev.parent) : ev.kind === 'bad' ? 'amended from ' + n(ev.parent) : 'fresh agent');
+    case 'no-eligible': return 'Nobody wakes up for ' + LABEL[ROLES[ev.stage]];
+    default: return ev.type;
+  }
+}
+function renderLedger() {
+  const ol = $('ledgerList');
+  if (!lastRec) { ol.innerHTML = '<li class="muted" style="padding:4px 8px">The first task is starting.</li>'; return; }
+  ol.innerHTML = '';
+  lastRec.events.forEach((ev, i) => {
+    const li = document.createElement('li');
+    const b = document.createElement('button');
+    b.textContent = evLine(ev);
+    if (ev.type === 'act' && !ev.success || ev.type === 'bankrupt') b.classList.add('tag-fail');
+    if (selected && selected.kind === 'event' && selected.idx === i) b.setAttribute('aria-current', 'true');
+    b.addEventListener('click', () => { selected = { kind: 'event', idx: i, rec: lastRec }; renderInspector(); renderLedger(); });
+    li.appendChild(b); ol.appendChild(li);
+  });
+  const head = document.querySelector('#ledger h3');
+  head.textContent = 'Ledger, task ' + lastRec.episode + (lastRec.outcome === 'success' ? ' (finished)' : ' (failed)');
+}
+function renderEventExplain(idx) {
+  const rec = selected.rec || lastRec;
+  const ev = rec && rec.events[idx];
+  const el = $('inspector');
+  if (!ev) { selected = null; renderInspector(); return; }
+  const n = (id) => (id === 'house' ? 'the house' : (agentOf(id) || { name: '#' + id }).name);
+  let body = '';
+  switch (ev.type) {
+    case 'novice': body = '<p>' + n(ev.id) + ' is new, so it bids the highest veteran bid here (' + f1(ev.high) + ') plus the newcomer premium. That guarantees it wins its first auction, so the market tests it at least once (Eq. 2). After this its bid never changes.</p>'; break;
+    case 'auction': body = ev.byAuction
+      ? '<p>Only ' + LABEL[ROLES[ev.stage]].toLowerCase() + ' agents wake up at this stage. The highest bid wins (paper Sec. 2.2). Skill does not decide who wins the auction. Skill decides who can afford a high bid for long.</p><p class="eq">Bids: ' + ev.bids.map((b) => n(b.id) + ' ' + f1(b.bid)).join(', ') + '</p>'
+      : '<p>The auction is switched off, so one eligible agent was picked at random. This is how this rebuild reads the paper\'s "w/o auction" ablation.</p>'; break;
+    case 'pay': body = ev.to === 'house'
+      ? '<p>' + n(ev.from) + ' acted first, so there is nobody before it to pay. Its bid goes to the house (Eq. 1).</p>'
+      : '<p>Eq. 1: the winner pays its bid to the agent that acted just before it. ' + n(ev.to) + ' gets paid because its work put the task in a state that ' + n(ev.from) + ' was willing to pay for. This is how credit flows backwards to earlier helpers.</p><p class="muted">Notice the payment does not depend on how good ' + n(ev.to) + '\'s work was. It only arrives if ' + n(ev.to) + ' succeeded, because a failed step ends the task.</p>'; break;
+    case 'act': { const a = agentOf(ev.id); body = '<p>In this toy, an agent\'s step works with probability equal to its skill' + (a ? ' (' + pct(a.q) + ')' : '') + '. In the paper, this is an LLM doing real work.</p>' + (ev.success ? '' : '<p class="tag-fail">The step failed, so the task ends here. Nobody after it pays, and there is no reward. The agents before it keep what they were paid.</p>'); break; }
+    case 'reward': body = '<p>All three steps worked, so the final actor collects the outcome reward (Alg. 1, line 5).' + (eco.cfg.rewardScheme === 'chainSplit' ? ' With the chain-split switch on, every agent in the chain gets an equal share, like the released code.' : '') + '</p>'; break;
+    case 'rent': body = '<p>Every ' + eco.cfg.rentInterval + ' tasks every agent pays rent. Agents that never win only lose money, so rent is what removes idle agents (Sec. 2.3, Alg. 1).</p>'; break;
+    case 'bankrupt': body = '<p>Its credits fell below zero, so it is removed. The released code uses <code>wealth &lt; 0</code>. Its death may trigger a birth: 40% a copy of the richest, 40% an amended version of it, 20% nothing (p<sub>a</sub>, p<sub>b</sub>).</p>'; break;
+    case 'birth': body = ev.kind === 'good'
+      ? '<p>Exploitation: the richest agent (' + n(ev.parent) + ') is copied with a small change to its skill. Wealth is the only signal used to choose it.</p>'
+      : ev.kind === 'bad' ? '<p>Exploration: a poor or bankrupt agent (' + n(ev.parent) + ') is amended. In the paper an LLM rewrites its prompt using the failure. In this toy it gets a fresh random skill.</p>'
+      : '<p>The population fell below its minimum, so a fresh agent was added.</p>'; break;
+    default: body = '<p>' + evLine(ev) + '</p>';
+  }
+  el.innerHTML = '<h3>' + evLine(ev) + '</h3>' + '<div class="why">' + body + '</div>';
+}
+
+// ======================= stats and charts =======================
+function updateStats() {
+  $('sTask').textContent = eco.episode;
+  $('sSucc').textContent = pct(eco.expectedSuccess());
+  const sk = ROLES.map((r, i) => { const w = eco.winnersFor(i); return w.length ? f2(w.reduce((t, a) => t + a.q, 0) / w.length).replace(/^0/, '') : '-'; });
+  $('sSkill').innerHTML = sk.join(' <small>/</small> ');
+  $('sPop').textContent = eco.agents.length;
+  $('sBank').textContent = eco.bankruptCount;
+}
+function niceMax(v) { const steps = [1, 2, 5, 10, 20, 25, 50, 100, 200, 500]; for (const s of steps) if (v <= s) return s; return Math.ceil(v / 100) * 100; }
+function drawCharts() {
+  drawSuccess();
+  drawPrices();
+}
+function sample(arr, n) {
+  if (arr.length <= n) return arr;
+  const out = []; const step = arr.length / n;
+  for (let i = 0; i < n; i++) out.push(arr[Math.floor(i * step)]);
+  out.push(arr[arr.length - 1]);
+  return out;
+}
+function drawSuccess() {
+  const cv = $('chartSucc'); const { ctx, w, h } = fit(cv);
+  ctx.clearRect(0, 0, w, h);
+  const L = 36, R = 44, T = 10, B = 24;
+  const pw = w - L - R, ph = h - T - B;
+  const tMax = Math.max(50, hist[hist.length - 1].t);
+  const X = (t) => L + (t / tMax) * pw, Y = (s) => T + (1 - s) * ph;
+  ctx.font = FONT(11); ctx.fillStyle = C.muted; ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.textAlign = 'right';
+  for (const s of [0, 0.25, 0.5, 0.75, 1]) { ctx.beginPath(); ctx.moveTo(L, Y(s)); ctx.lineTo(L + pw, Y(s)); ctx.stroke(); ctx.fillText(pct(s), L - 6, Y(s) + 4); }
+  ctx.textAlign = 'center';
+  for (let i = 0; i <= 4; i++) { const t = Math.round((tMax * i) / 4); ctx.fillText(t, X(t), h - 6); }
+  for (const m of markers) {
+    ctx.strokeStyle = C.muted; ctx.setLineDash([2, 3]); ctx.beginPath(); ctx.moveTo(X(m.t), T); ctx.lineTo(X(m.t), T + ph); ctx.stroke(); ctx.setLineDash([]);
+    ctx.save(); ctx.translate(X(m.t) + 3, T + 4); ctx.fillStyle = C.muted; ctx.textAlign = 'left'; ctx.font = FONT(10); ctx.fillText(m.label, 0, 8); ctx.restore();
+  }
+  const pts = sample(hist, Math.max(40, Math.floor(pw)));
+  ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(X(p.t), Y(p.s)) : ctx.moveTo(X(p.t), Y(p.s))));
+  ctx.lineTo(X(pts[pts.length - 1].t), Y(0)); ctx.lineTo(X(pts[0].t), Y(0)); ctx.closePath();
+  ctx.fillStyle = 'rgba(233,236,242,0.08)'; ctx.fill();
+  ctx.beginPath(); pts.forEach((p, i) => (i ? ctx.lineTo(X(p.t), Y(p.s)) : ctx.moveTo(X(p.t), Y(p.s))));
+  ctx.strokeStyle = C.fg; ctx.lineWidth = 1.6; ctx.stroke();
+  const lp = hist[hist.length - 1];
+  ctx.fillStyle = C.fg; ctx.beginPath(); ctx.arc(X(lp.t), Y(lp.s), 3.5, 0, 7); ctx.fill();
+  ctx.font = FONT(12, 700); ctx.textAlign = 'left'; ctx.fillText(pct(lp.s), X(lp.t) + 6, Y(lp.s) + 4);
+}
+function drawPrices() {
+  const cv = $('chartPrice'); const { ctx, w, h } = fit(cv);
+  ctx.clearRect(0, 0, w, h);
+  const L = 70, R = 10, T = 6, B = 20, gap = 10;
+  const rowH = (h - T - B - gap * 2) / 3;
+  const tMax = Math.max(50, hist[hist.length - 1].t);
+  const X = (t) => L + (t / tMax) * (w - L - R);
+  const pts = sample(hist, Math.max(40, Math.floor(w - L - R)));
+  ROLES.forEach((role, i) => {
+    const y0 = T + i * (rowH + gap);
+    let vmax = 1;
+    for (const p of pts) { const pr = p.prices[i]; if (pr.bid != null) vmax = Math.max(vmax, pr.bid); vmax = Math.max(vmax, pr.value); }
+    vmax = niceMax(vmax * 1.05);
+    const Y = (v) => y0 + rowH - (v / vmax) * rowH;
+    ctx.strokeStyle = C.line; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(L, y0 + rowH); ctx.lineTo(w - R, y0 + rowH); ctx.stroke();
+    ctx.fillStyle = C.fg; ctx.font = FONT(12, 700); ctx.textAlign = 'left'; ctx.fillText(LABEL[role], 0, y0 + 14);
+    ctx.fillStyle = C.muted; ctx.font = FONT(10.5); ctx.fillText('0 to ' + vmax, 0, y0 + 29);
+    // value
+    ctx.beginPath(); let started = false;
+    for (const p of pts) { const v = p.prices[i].value; const x = X(p.t), y = Y(v); if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y); }
+    ctx.strokeStyle = C.muted; ctx.lineWidth = 1.2; ctx.setLineDash([3, 3]); ctx.stroke(); ctx.setLineDash([]);
+    // price
+    ctx.beginPath(); started = false;
+    for (const p of pts) { const b = p.prices[i].bid; if (b == null) { started = false; continue; } const x = X(p.t), y = Y(b); if (!started) { ctx.moveTo(x, y); started = true; } else ctx.lineTo(x, y); }
+    ctx.strokeStyle = C.brass; ctx.lineWidth = 1.8; ctx.stroke();
+  });
+  ctx.fillStyle = C.muted; ctx.font = FONT(11); ctx.textAlign = 'right'; ctx.fillText('task ' + hist[hist.length - 1].t, w - R, h - 4);
+}
+
+// ======================= predict the winner =======================
+function askPrediction(ev) {
+  awaiting = true;
+  const box = $('predict'), ch = $('predChoices');
+  $('predText').textContent = 'The ' + LABEL[ROLES[ev.stage]].toLowerCase() + ' auction is about to run. Who wins the turn?';
+  $('predReveal').hidden = true; $('predGo').hidden = true;
+  ch.innerHTML = '';
+  for (const b of ev.bids) {
+    const a = agentOf(b.id);
+    const btn = document.createElement('button');
+    btn.className = 'btn choice';
+    btn.innerHTML = '<b>' + (a ? a.name : b.id) + '</b><span class="muted">skill ' + (a ? f2(a.q) : '?') + '</span><br><span class="brass">bid ' + f1(b.bid) + '</span>';
+    btn.addEventListener('click', () => reveal(ev, b.id));
+    ch.appendChild(btn);
+  }
+  box.hidden = false;
+  ch.querySelector('button') && ch.querySelector('button').focus();
+}
+function reveal(ev, pick) {
+  const win = ev.winner, wa = agentOf(win);
+  const best = ev.bids.reduce((m, b) => (b.bid > m ? b.bid : m), -1);
+  [...$('predChoices').children].forEach((b, i) => { b.disabled = true; if (ev.bids[i].id === win) b.dataset.win = 'true'; });
+  const right = pick === win;
+  const tied = ev.bids.filter((b) => b.bid === best).length;
+  $('predReveal').innerHTML = (right ? '<b class="brass">Right.</b> ' : '<b>Not this time.</b> ') +
+    (ev.byAuction ? (wa ? wa.name : win) + ' wins because it has the highest bid (' + f1(best) + ')' + (tied > 1 ? ', tied with ' + (tied - 1) + ' other, so a coin flip decided it' : '') + '. Skill does not win auctions. Skill decides who can keep paying a high bid without going broke.'
+      : 'The auction is off, so the winner was random.');
+  $('predReveal').hidden = false; $('predGo').hidden = false; $('predGo').focus();
+}
+$('predGo').addEventListener('click', () => { $('predict').hidden = true; awaiting = false; });
+$('predOff').addEventListener('click', () => { predictOn = false; setSwitch('tPredict', false); $('predict').hidden = true; awaiting = false; });
+
+// ======================= controls =======================
+function setSwitch(id, on) { $(id).setAttribute('aria-checked', on ? 'true' : 'false'); }
+function applyRule(key, val, label) {
+  rules[key] = val;
+  eco.cfg[key] = val;
+  markers.push({ t: eco.episode, label });
+  drawCharts();
+  if (selected) renderInspector();
+}
+const sliders = [
+  { id: 'cReward', out: 'oReward', key: 'reward', fmt: (v) => v, label: (v) => 'reward ' + v },
+  { id: 'cRent', out: 'oRent', key: 'rent', fmt: (v) => v, label: (v) => 'rent ' + v },
+  { id: 'cEps', out: 'oEps', key: 'epsilon', fmt: (v) => v.toFixed(1), label: (v) => 'epsilon ' + v.toFixed(1) },
+  { id: 'cSigma', out: 'oSigma', key: 'mutationSigma', fmt: (v) => v.toFixed(2), label: (v) => 'mutation ' + v.toFixed(2) },
+  { id: 'cBirth', out: 'oBirth', key: 'birthInterval', fmt: (v) => v + ' tasks', label: (v) => 'births every ' + v },
+];
+function syncControls() {
+  for (const s of sliders) { $(s.id).value = rules[s.key]; $(s.out).textContent = s.fmt(+rules[s.key]); }
+  setSwitch('tAuction', rules.auction); setSwitch('tExplore', rules.exploration); setSwitch('tExploit', rules.exploitation);
+  setSwitch('tShare', rules.rewardScheme === 'chainSplit'); setSwitch('tFixed', rules.bidScheme === 'fixed');
+  setSwitch('tPredict', predictOn);
+  $('cSeed').value = seed;
+}
+for (const s of sliders) {
+  const el = $(s.id);
+  el.addEventListener('input', () => { $(s.out).textContent = s.fmt(+el.value); });
+  el.addEventListener('change', () => applyRule(s.key, +el.value, s.label(+el.value)));
+}
+function bindSwitch(id, fn) { $(id).addEventListener('click', () => { const on = $(id).getAttribute('aria-checked') !== 'true'; setSwitch(id, on); fn(on); }); }
+bindSwitch('tAuction', (on) => applyRule('auction', on, on ? 'auction on' : 'auction off'));
+bindSwitch('tExplore', (on) => applyRule('exploration', on, on ? 'exploration on' : 'exploration off'));
+bindSwitch('tExploit', (on) => applyRule('exploitation', on, on ? 'exploitation on' : 'exploitation off'));
+bindSwitch('tShare', (on) => applyRule('rewardScheme', on ? 'chainSplit' : 'outcome', on ? 'shared reward' : 'final-actor reward'));
+bindSwitch('tFixed', (on) => applyRule('bidScheme', on ? 'fixed' : 'fixed_with_eps', on ? 'same bids' : 'Eq. 2 bids'));
+bindSwitch('tPredict', (on) => { predictOn = on; if (on && (speed === 'max' || speed > 4)) setSpeed(1); });
+$('bOver').addEventListener('click', () => {
+  const o = eco.addOverbidder('diagnose');
+  makeVis(o, { x: G.cols[0].cx, y: G.top }, 1);
+  markers.push({ t: eco.episode, label: 'overbidder' });
+  selected = { kind: 'agent', id: o.id }; renderInspector(); drawCharts();
+});
+$('bDefaults').addEventListener('click', () => {
+  Object.assign(rules, RULE_DEFAULTS);
+  Object.assign(eco.cfg, RULE_DEFAULTS);
+  markers.push({ t: eco.episode, label: 'rules reset' });
+  syncControls(); drawCharts();
+});
+$('bRestart').addEventListener('click', () => { seed = Math.max(1, Math.floor(+$('cSeed').value || 7)); newEconomy(); });
+
+function setPlay(on) { playing = on; $('bPlay').textContent = on ? 'Pause' : 'Play'; }
+$('bPlay').addEventListener('click', () => setPlay(!playing));
+$('bStep').addEventListener('click', () => {
+  setPlay(false);
+  if (cur || queue.length) { // finish the current task instantly
+    while (cur || queue.length) { if (!cur) { cur = queue.shift(); onStart(cur); } const d = cur; cur = null; onEnd(d); }
+  }
+  startTask(); stepping = true;
+  if (speed === 'max') { while (queue.length) { const st = queue.shift(); onStart(st); onEnd(st); } stepping = false; }
+});
+function setSpeed(s) {
+  speed = s;
+  [...$('speedSeg').children].forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.s === String(s))));
+}
+$('speedSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; const s = b.dataset.s === 'max' ? 'max' : +b.dataset.s; setSpeed(s); if (s === 'max' || s > 4) { if (predictOn) { predictOn = false; setSwitch('tPredict', false); } } });
+$('bReplay').addEventListener('click', () => {
+  if (!lastRec || !lastSnap) return;
+  playingBeforeReplay = playing;
+  // finish anything in flight first so the replay starts clean
+  queue = []; cur = null; awaiting = false; $('predict').hidden = true;
+  restoreVis(lastSnap);
+  replaying = true; playing = false;
+  queue = buildSteps(lastRec);
+  token.stage = 0; token.fail = false; token.done = false; token.show = true;
+  floats = [];
+});
+function finishReplay() { replaying = false; syncVis(); activeWinner = null; activeAuction = null; setPlay(playingBeforeReplay); }
+$('bSkip').addEventListener('click', () => runInstant(100));
+
+// ======================= ablation lanes =======================
+const LANES = [
+  { key: 'full', name: 'Full system', cfg: {} },
+  { key: 'noAuction', name: 'Without the auction', cfg: { auction: false } },
+  { key: 'noExploration', name: 'Without exploration', cfg: { exploration: false } },
+  { key: 'noExploitation', name: 'Without exploitation', cfg: { exploitation: false } },
+];
+const LANE_TASKS = 1500, LANE_SEEDS = 8;
+let laneSeed = 1001;
+let lanes = [];
+function buildLanes() {
+  const host = $('lanes'); host.innerHTML = '';
+  lanes = LANES.map((L) => {
+    const div = document.createElement('div'); div.className = 'lane' + (L.key === 'full' ? ' full' : '');
+    div.innerHTML = '<h3>' + L.name + '</h3><div class="big num">0%</div><canvas aria-label="' + L.name + ' agents and test success"></canvas><p class="cap num">task 0</p>';
+    host.appendChild(div);
+    const ecos = []; for (let k = 0; k < LANE_SEEDS; k++) ecos.push(new E.Economy(Object.assign({ seed: laneSeed + k * 101 }, L.cfg)));
+    return { L, div, big: div.querySelector('.big'), cv: div.querySelector('canvas'), cap: div.querySelector('.cap'), ecos, eco: ecos[0], curve: [] };
+  });
+  for (const l of lanes) l.curve.push(l.ecos.reduce((t, e) => t + e.expectedSuccess(), 0) / LANE_SEEDS);
+  $('laneSeedLbl').textContent = 'Seeds ' + laneSeed + ' and up. Default rules, so your changes above do not affect this race.';
+}
+let laneDrawTick = 0;
+function laneTick() {
+  if (!lanes.length) return;
+  let moved = false;
+  for (const l of lanes) {
+    if (l.eco.episode >= LANE_TASKS) continue;
+    for (let i = 0; i < 3 && l.eco.episode < LANE_TASKS; i++) {
+      let sum = 0; for (const e of l.ecos) sum += e.runEpisode().testSuccess;
+      l.curve.push(sum / LANE_SEEDS); moved = true;
+    }
+  }
+  if (moved || laneDrawTick++ % 30 === 0) for (const l of lanes) drawLane(l);
+}
+function drawLane(l) {
+  const { ctx, w, h } = fit(l.cv);
+  ctx.clearRect(0, 0, w, h);
+  const dotsH = h * 0.5;
+  const colW = w / 3;
+  ROLES.forEach((role, i) => {
+    const list = l.eco.agents.filter((a) => a.role === role).sort((a, b) => (b.bid ?? 1e9) - (a.bid ?? 1e9));
+    const top = l.eco.winnersFor(i).map((a) => a.id);
+    ctx.fillStyle = C.muted; ctx.font = FONT(10.5); ctx.textAlign = 'center'; ctx.fillText(SHORT[role], colW * (i + 0.5), 11);
+    const per = 4, cell = Math.min(colW / per, (dotsH - 16) / 4);
+    list.slice(0, 16).forEach((a, k) => {
+      const x = colW * i + (colW - per * cell) / 2 + ((k % per) + 0.5) * cell;
+      const y = 18 + (Math.floor(k / per) + 0.5) * cell;
+      const r = clamp(Math.sqrt(Math.max(0, a.wealth)) * (cell * 0.26) / Math.sqrt(70), 1.6, cell * 0.46);
+      ctx.fillStyle = skillColor(a.q); ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+      if (l.eco.cfg.auction && top.includes(a.id)) { ctx.strokeStyle = C.fg; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(x, y, r + 2, 0, 7); ctx.stroke(); }
+    });
+  });
+  const y0 = dotsH + 8, ph = h - y0 - 4;
+  ctx.strokeStyle = C.line; ctx.lineWidth = 1;
+  for (const s of [0, 0.5, 1]) { ctx.beginPath(); ctx.moveTo(0, y0 + (1 - s) * ph); ctx.lineTo(w, y0 + (1 - s) * ph); ctx.stroke(); }
+  ctx.fillStyle = C.muted; ctx.font = FONT(9.5); ctx.textAlign = 'left'; ctx.fillText('100%', 2, y0 + 10);
+  const pts = l.curve; const n = pts.length;
+  // smooth with a moving average so the race is readable
+  const win = 25; let acc = 0; const sm = [];
+  for (let i = 0; i < n; i++) { acc += pts[i]; if (i >= win) acc -= pts[i - win]; sm.push(acc / Math.min(i + 1, win)); }
+  ctx.beginPath();
+  const step = Math.max(1, Math.floor(n / w));
+  for (let i = 0; i < n; i += step) { const x = (i / LANE_TASKS) * w, y = y0 + (1 - sm[i]) * ph; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+  ctx.strokeStyle = l.L.key === 'full' ? C.brass : C.fg; ctx.lineWidth = 1.6; ctx.stroke();
+  const tail = pts.slice(Math.floor(LANE_TASKS * 0.8));
+  const val = l.eco.episode >= LANE_TASKS ? tail.reduce((t, x) => t + x, 0) / tail.length : sm[n - 1];
+  l.big.textContent = pct(val);
+  l.cap.textContent = l.eco.episode >= LANE_TASKS ? 'Done, 1,500 tasks. Number = mean of the last 300 tasks.' : 'Task ' + l.eco.episode;
+}
+$('bLanes').addEventListener('click', () => { laneSeed += 1; buildLanes(); });
+
+// ======================= Table 2 bars =======================
+const PAPER = [
+  { name: 'Full system', v: 52.5 }, { name: 'Without the auction', v: 48.0 },
+  { name: 'Without exploration', v: 26.0 }, { name: 'Without exploitation', v: 33.5 },
+];
+function renderBars(host, rows, max, unit, lead) {
+  host.innerHTML = '';
+  for (const r of rows) {
+    const d = document.createElement('div'); d.className = 'bar' + (r.name === lead ? ' lead' : '');
+    const w = (r.v / max) * 100;
+    let err = '';
+    if (r.sd != null) { const a = Math.max(0, r.v - r.sd) / max * 100, b = Math.min(max, r.v + r.sd) / max * 100; err = '<span class="err" style="left:' + a + '%;width:' + (b - a) + '%"></span>'; }
+    d.innerHTML = '<span>' + r.name + '</span><span class="track"><span class="fill" style="width:' + w + '%"></span>' + err + '</span><b>' + (unit === '%' ? r.v.toFixed(1) : pct(r.v)) + '</b>';
+    host.appendChild(d);
+  }
+}
+function toyRows(res) {
+  return [
+    { name: 'Full system', v: res.full.mean, sd: res.full.sd },
+    { name: 'Without the auction', v: res.noAuction.mean, sd: res.noAuction.sd },
+    { name: 'Without exploration', v: res.noExploration.mean, sd: res.noExploration.sd },
+    { name: 'Without exploitation', v: res.noExploitation.mean, sd: res.noExploitation.sd },
+  ];
+}
+function renderTable2(res, live) {
+  renderBars($('toyBars'), toyRows(res), 0.7, 'frac', 'Full system');
+  renderBars($('paperBars'), PAPER, 70, '%', 'Full system');
+  $('toyCap').textContent = (live ? 'Just re-run in your browser: ' : 'Recorded run: ') + 'mean test success over the last 20% of training, 30 seeds x 1,500 tasks. All start at ' + pct(res.full.start) + '. Brass whiskers = 1 standard deviation.';
+}
+$('bBatch').addEventListener('click', () => {
+  const btn = $('bBatch'); btn.disabled = true;
+  const keys = [['full', {}], ['noAuction', { auction: false }], ['noExploration', { exploration: false }], ['noExploitation', { exploitation: false }]];
+  const out = {}; let ki = 0, seedI = 0; let finals = []; let starts = [];
+  const step = () => {
+    const t0 = performance.now();
+    while (performance.now() - t0 < 30 && ki < keys.length) {
+      const e = new E.Economy(Object.assign({ seed: 1000 + seedI }, keys[ki][1]));
+      const curve = []; for (let i = 0; i < 1500; i++) curve.push(e.runEpisode().testSuccess);
+      const tail = curve.slice(1200); finals.push(tail.reduce((t, x) => t + x, 0) / tail.length); starts.push(curve[0]);
+      seedI++;
+      if (seedI >= 30) {
+        const m = finals.reduce((t, x) => t + x, 0) / finals.length;
+        const sd = Math.sqrt(finals.reduce((t, x) => t + (x - m) ** 2, 0) / (finals.length - 1));
+        out[keys[ki][0]] = { mean: m, sd, start: starts.reduce((t, x) => t + x, 0) / starts.length };
+        ki++; seedI = 0; finals = []; starts = [];
+      }
+    }
+    $('batchStatus').textContent = ki < keys.length ? 'Running ' + (ki * 30 + seedI) + ' of 120 economies' : 'Done.';
+    if (ki < keys.length) setTimeout(step, 0); else { renderTable2(out, true); btn.disabled = false; }
+  };
+  step();
+});
+
+// ======================= article ledger demo =======================
+let lpath = 'ok', lstep = 0, lres = null;
+function ledgerReset() {
+  lres = E.articleLedger(lpath);
+  lstep = 0;
+  renderLedgerDemo();
+}
+function ledgerFrames() {
+  // turn the engine's events into readable steps with balances after each
+  const bal = { A: 10, B: 10, C: 10, house: 0, eval: 0 };
+  const id2 = {}; lres.economy.agents.forEach((a) => (id2[a.id] = a.name));
+  const frames = [{ text: 'Everyone starts with 10 credits.', bal: Object.assign({}, bal), hot: [] }];
+  for (const ev of lres.events) {
+    if (ev.type === 'auction') frames.push({ text: id2[ev.winner] + ' wins the ' + LABEL[ROLES[ev.stage]].toLowerCase() + ' turn with a bid of ' + ev.bids.find((b) => b.id === ev.winner).bid + '.', bal: Object.assign({}, bal), hot: [id2[ev.winner]] });
+    if (ev.type === 'pay') { const from = id2[ev.from], to = ev.to === 'house' ? 'house' : id2[ev.to]; bal[from] -= ev.amount; bal[to] += ev.amount; frames.push({ text: from + ' pays ' + (to === 'house' ? 'the house' : to) + ' ' + ev.amount + '.' + (to === 'house' ? ' Nobody acted before it.' : ' Eq. 1: pay the agent before you.'), bal: Object.assign({}, bal), hot: [from, to] }); }
+    if (ev.type === 'act') frames.push({ text: id2[ev.id] + (ev.success ? ' does its step.' : ' checks, but the program fails its final test.'), bal: Object.assign({}, bal), hot: [id2[ev.id]] });
+    if (ev.type === 'reward') { bal[id2[ev.to]] += ev.amount; bal.eval = ev.amount; frames.push({ text: id2[ev.to] + ' is the final actor, so it collects the reward of ' + ev.amount + '.', bal: Object.assign({}, bal), hot: [id2[ev.to], 'eval'] }); }
+  }
+  if (lpath === 'bug') frames.push({ text: 'No reward. B still kept the 7 that C paid it. Profitable, but it shipped a bug.', bal: Object.assign({}, bal), hot: ['B'] });
+  return frames;
+}
+function renderLedgerDemo() {
+  const frames = ledgerFrames();
+  const f = frames[Math.min(lstep, frames.length - 1)];
+  const acct = (key, who, sub, cls) => '<div class="acct ' + (cls || '') + (f.hot.includes(key) ? ' hot' : '') + '"><span class="who">' + who + '</span><span class="bal">' + (key === 'eval' ? (f.bal.eval ? '+' + f.bal.eval : '0') : f.bal[key]) + '</span><small>' + sub + '</small></div>';
+  $('trio').innerHTML = acct('house', 'House', 'gets first bids', 'outside') + acct('A', 'A', 'diagnoses, bid 2') + acct('B', 'B', 'edits, bid 4') + acct('C', 'C', 'checks, bid 7') + acct('eval', 'Test', 'reward if it works', 'outside');
+  $('ledgerSteps').innerHTML = frames.slice(0, lstep + 1).map((fr, i) => '<li class="' + (i === lstep ? 'now' : '') + '">' + fr.text + '</li>').join('');
+  const doneAll = lstep >= frames.length - 1;
+  $('bLedgerNext').disabled = doneAll;
+  const want = lpath === 'ok' ? [12, 13, 13] : [12, 13, 3];
+  const got = lres.balances;
+  $('ledgerCheck').innerHTML = doneAll
+    ? 'My article says <b>' + want.join(', ') + '</b>. The engine ends at <b class="brass">' + got.join(', ') + '</b>. ' + (want.every((v, i) => v === got[i]) ? 'Match.' : 'Mismatch.')
+    : '<span class="muted">Step ' + lstep + ' of ' + (frames.length - 1) + '</span>';
+}
+$('bLedgerNext').addEventListener('click', () => { lstep++; renderLedgerDemo(); });
+$('bLedgerReset').addEventListener('click', ledgerReset);
+$('pathSeg').addEventListener('click', (e) => { const b = e.target.closest('button'); if (!b) return; lpath = b.dataset.p; [...$('pathSeg').children].forEach((x) => x.setAttribute('aria-pressed', String(x === b))); ledgerReset(); });
+
+// ======================= tests in the page =======================
+$('bTests').addEventListener('click', () => {
+  const btn = $('bTests'); btn.disabled = true;
+  const list = window.EoMTests.makeTests(E);
+  const out = $('testOut'); out.innerHTML = '';
+  let i = 0, pass = 0;
+  const run = () => {
+    if (i >= list.length) { $('testSum').textContent = pass + ' of ' + list.length + ' passed'; btn.disabled = false; return; }
+    const t = list[i++]; let ok = true, err = '';
+    try { t.fn(); } catch (e) { ok = false; err = String(e && e.message || e); }
+    if (ok) pass++;
+    const li = document.createElement('li');
+    li.innerHTML = '<span class="' + (ok ? 'p' : 'f') + '">' + (ok ? 'pass' : 'FAIL') + '</span><span>' + t.name + ' <span class="muted">(' + t.source + ')</span>' + (ok ? '' : '<br><span class="tag-fail">' + err + '</span>') + '</span>';
+    out.appendChild(li);
+    $('testSum').textContent = 'Running ' + i + ' of ' + list.length;
+    setTimeout(run, 0);
+  };
+  run();
+});
+
+// ======================= boot =======================
+function boot() {
+  syncControls();
+  setSpeed(speed);
+  newEconomy();
+  buildLanes();
+  renderTable2(RECORDED, false);
+  ledgerReset();
+  requestAnimationFrame((t) => { last = t; frame(t); });
+  let rt = null;
+  window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { layoutTargets(true); drawCharts(); for (const l of lanes) drawLane(l); }, 80); });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawCharts(); for (const l of lanes) drawLane(l); });
+}
+boot();
+})();
+</script>

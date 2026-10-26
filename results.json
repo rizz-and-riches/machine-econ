@@ -1,0 +1,1397 @@
+{
+ "seeds": 30,
+ "tasksPerRun": 100,
+ "testTasks": 200,
+ "generated": "2026-10-24",
+ "full": {
+  "initial": 0.246,
+  "final": 0.609,
+  "finalSd": 0.223,
+  "meanCk": 0.441,
+  "best": 0.737,
+  "bestOfRuns": 0.905,
+  "curve": [
+   {
+    "episode": 0,
+    "acc": 0.246
+   },
+   {
+    "episode": 10,
+    "acc": 0.26
+   },
+   {
+    "episode": 20,
+    "acc": 0.236
+   },
+   {
+    "episode": 30,
+    "acc": 0.368
+   },
+   {
+    "episode": 40,
+    "acc": 0.397
+   },
+   {
+    "episode": 50,
+    "acc": 0.405
+   },
+   {
+    "episode": 60,
+    "acc": 0.473
+   },
+   {
+    "episode": 70,
+    "acc": 0.536
+   },
+   {
+    "episode": 80,
+    "acc": 0.538
+   },
+   {
+    "episode": 90,
+    "acc": 0.586
+   },
+   {
+    "episode": 100,
+    "acc": 0.609
+   }
+  ],
+  "levelsStart": [
+   0.637,
+   0.258,
+   0.229,
+   0.074,
+   0.031
+  ],
+  "levelsEnd": [
+   0.813,
+   0.681,
+   0.679,
+   0.487,
+   0.384
+  ],
+  "births": {
+   "planner": 20.167,
+   "executor": 50.333,
+   "verifier": 22.3,
+   "answer": 89.733
+  },
+  "bankrupt": 169.067,
+  "pop": 18.467
+ },
+ "ablations": {
+  "full": {
+   "initial": 0.246,
+   "final": 0.609,
+   "finalSd": 0.223,
+   "meanCk": 0.441,
+   "best": 0.737,
+   "bestOfRuns": 0.905,
+   "curve": [
+    {
+     "episode": 0,
+     "acc": 0.246
+    },
+    {
+     "episode": 10,
+     "acc": 0.26
+    },
+    {
+     "episode": 20,
+     "acc": 0.236
+    },
+    {
+     "episode": 30,
+     "acc": 0.368
+    },
+    {
+     "episode": 40,
+     "acc": 0.397
+    },
+    {
+     "episode": 50,
+     "acc": 0.405
+    },
+    {
+     "episode": 60,
+     "acc": 0.473
+    },
+    {
+     "episode": 70,
+     "acc": 0.536
+    },
+    {
+     "episode": 80,
+     "acc": 0.538
+    },
+    {
+     "episode": 90,
+     "acc": 0.586
+    },
+    {
+     "episode": 100,
+     "acc": 0.609
+    }
+   ],
+   "levelsStart": [
+    0.637,
+    0.258,
+    0.229,
+    0.074,
+    0.031
+   ],
+   "levelsEnd": [
+    0.813,
+    0.681,
+    0.679,
+    0.487,
+    0.384
+   ],
+   "births": {
+    "planner": 20.167,
+    "executor": 50.333,
+    "verifier": 22.3,
+    "answer": 89.733
+   },
+   "bankrupt": 169.067,
+   "pop": 18.467
+  },
+  "noAuction": {
+   "initial": 0.246,
+   "final": 0.501,
+   "finalSd": 0.169,
+   "meanCk": 0.379,
+   "best": 0.567,
+   "bestOfRuns": 0.8,
+   "curve": [
+    {
+     "episode": 0,
+     "acc": 0.246
+    },
+    {
+     "episode": 10,
+     "acc": 0.283
+    },
+    {
+     "episode": 20,
+     "acc": 0.288
+    },
+    {
+     "episode": 30,
+     "acc": 0.315
+    },
+    {
+     "episode": 40,
+     "acc": 0.333
+    },
+    {
+     "episode": 50,
+     "acc": 0.333
+    },
+    {
+     "episode": 60,
+     "acc": 0.394
+    },
+    {
+     "episode": 70,
+     "acc": 0.423
+    },
+    {
+     "episode": 80,
+     "acc": 0.466
+    },
+    {
+     "episode": 90,
+     "acc": 0.452
+    },
+    {
+     "episode": 100,
+     "acc": 0.501
+    }
+   ],
+   "levelsStart": [
+    0.637,
+    0.258,
+    0.229,
+    0.074,
+    0.031
+   ],
+   "levelsEnd": [
+    0.774,
+    0.581,
+    0.556,
+    0.364,
+    0.228
+   ],
+   "births": {
+    "planner": 26.567,
+    "executor": 65.367,
+    "verifier": 27.6,
+    "answer": 80.233
+   },
+   "bankrupt": 186.2,
+   "pop": 18.567
+  },
+  "noExploration": {
+   "initial": 0.246,
+   "final": 0.618,
+   "finalSd": 0.201,
+   "meanCk": 0.415,
+   "best": 0.704,
+   "bestOfRuns": 0.93,
+   "curve": [
+    {
+     "episode": 0,
+     "acc": 0.246
+    },
+    {
+     "episode": 10,
+     "acc": 0.261
+    },
+    {
+     "episode": 20,
+     "acc": 0.249
+    },
+    {
+     "episode": 30,
+     "acc": 0.316
+    },
+    {
+     "episode": 40,
+     "acc": 0.318
+    },
+    {
+     "episode": 50,
+     "acc": 0.362
+    },
+    {
+     "episode": 60,
+     "acc": 0.406
+    },
+    {
+     "episode": 70,
+     "acc": 0.495
+    },
+    {
+     "episode": 80,
+     "acc": 0.54
+    },
+    {
+     "episode": 90,
+     "acc": 0.59
+    },
+    {
+     "episode": 100,
+     "acc": 0.618
+    }
+   ],
+   "levelsStart": [
+    0.637,
+    0.258,
+    0.229,
+    0.074,
+    0.031
+   ],
+   "levelsEnd": [
+    0.823,
+    0.725,
+    0.724,
+    0.465,
+    0.352
+   ],
+   "births": {
+    "planner": 16.633,
+    "executor": 31.2,
+    "verifier": 20.867,
+    "answer": 64.9
+   },
+   "bankrupt": 127.6,
+   "pop": 11
+  },
+  "noExploitation": {
+   "initial": 0.246,
+   "final": 0.544,
+   "finalSd": 0.236,
+   "meanCk": 0.471,
+   "best": 0.688,
+   "bestOfRuns": 0.945,
+   "curve": [
+    {
+     "episode": 0,
+     "acc": 0.246
+    },
+    {
+     "episode": 10,
+     "acc": 0.346
+    },
+    {
+     "episode": 20,
+     "acc": 0.386
+    },
+    {
+     "episode": 30,
+     "acc": 0.428
+    },
+    {
+     "episode": 40,
+     "acc": 0.471
+    },
+    {
+     "episode": 50,
+     "acc": 0.482
+    },
+    {
+     "episode": 60,
+     "acc": 0.508
+    },
+    {
+     "episode": 70,
+     "acc": 0.464
+    },
+    {
+     "episode": 80,
+     "acc": 0.546
+    },
+    {
+     "episode": 90,
+     "acc": 0.535
+    },
+    {
+     "episode": 100,
+     "acc": 0.544
+    }
+   ],
+   "levelsStart": [
+    0.637,
+    0.258,
+    0.229,
+    0.074,
+    0.031
+   ],
+   "levelsEnd": [
+    0.75,
+    0.593,
+    0.603,
+    0.423,
+    0.349
+   ],
+   "births": {
+    "planner": 16.833,
+    "executor": 24.7,
+    "verifier": 23.867,
+    "answer": 21.233
+   },
+   "bankrupt": 83.867,
+   "pop": 7.767
+  }
+ },
+ "sensitivity": {
+  "original": {
+   "initial": 0.246,
+   "final": 0.609,
+   "finalSd": 0.223,
+   "meanCk": 0.441,
+   "best": 0.737,
+   "bestOfRuns": 0.905,
+   "curve": [
+    {
+     "episode": 0,
+     "acc": 0.246
+    },
+    {
+     "episode": 10,
+     "acc": 0.26
+    },
+    {
+     "episode": 20,
+     "acc": 0.236
+    },
+    {
+     "episode": 30,
+     "acc": 0.368
+    },
+    {
+     "episode": 40,
+     "acc": 0.397
+    },
+    {
+     "episode": 50,
+     "acc": 0.405
+    },
+    {
+     "episode": 60,
+     "acc": 0.473
+    },
+    {
+     "episode": 70,
+     "acc": 0.536
+    },
+    {
+     "episode": 80,
+     "acc": 0.538
+    },
+    {
+     "episode": 90,
+     "acc": 0.586
+    },
+    {
+     "episode": 100,
+     "acc": 0.609
+    }
+   ],
+   "levelsStart": [
+    0.637,
+    0.258,
+    0.229,
+    0.074,
+    0.031
+   ],
+   "levelsEnd": [
+    0.813,
+    0.681,
+    0.679,
+    0.487,
+    0.384
+   ],
+   "births": {
+    "planner": 20.167,
+    "executor": 50.333,
+    "verifier": 22.3,
+    "answer": 89.733
+   },
+   "bankrupt": 169.067,
+   "pop": 18.467
+  },
+  "rentX10": {
+   "initial": 0.246,
+   "final": 0.472,
+   "finalSd": 0.271,
+   "meanCk": 0.418,
+   "best": 0.758,
+   "bestOfRuns": 0.925,
+   "curve": [
+    {
+     "episode": 0,
+     "acc": 0.246
+    },
+    {
+     "episode": 10,
+     "acc": 0.3
+    },
+    {
+     "episode": 20,
+     "acc": 0.336
+    },
+    {
+     "episode": 30,
+     "acc": 0.413
+    },
+    {
+     "episode": 40,
+     "acc": 0.422
+    },
+    {
+     "episode": 50,
+     "acc": 0.439
+    },
+    {
+     "episode": 60,
+     "acc": 0.383
+    },
+    {
+     "episode": 70,
+     "acc": 0.488
+    },
+    {
+     "episode": 80,
+     "acc": 0.486
+    },
+    {
+     "episode": 90,
+     "acc": 0.446
+    },
+    {
+     "episode": 100,
+     "acc": 0.472
+    }
+   ],
+   "levelsStart": [
+    0.637,
+    0.258,
+    0.229,
+    0.074,
+    0.031
+   ],
+   "levelsEnd": [
+    0.665,
+    0.561,
+    0.545,
+    0.323,
+    0.266
+   ],
+   "births": {
+    "planner": 403.133,
+    "executor": 54.6,
+    "verifier": 51.533,
+    "answer": 117.267
+   },
+   "bankrupt": 612.6,
+   "pop": 18.933
+  },
+  "rewardX02": {
+   "initial": 0.246,
+   "final": 0.515,
+   "finalSd": 0.21,
+   "meanCk": 0.438,
+   "best": 0.753,
+   "bestOfRuns": 0.915,
+   "curve": [
+    {
+     "episode": 0,
+     "acc": 0.246
+    },
+    {
+     "episode": 10,
+     "acc": 0.286
+    },
+    {
+     "episode": 20,
+     "acc": 0.302
+    },
+    {
+     "episode": 30,
+     "acc": 0.415
+    },
+    {
+     "episode": 40,
+     "acc": 0.391
+    },
+    {
+     "episode": 50,
+     "acc": 0.453
+    },
+    {
+     "episode": 60,
+     "acc": 0.426
+    },
+    {
+     "episode": 70,
+     "acc": 0.476
+    },
+    {
+     "episode": 80,
+     "acc": 0.509
+    },
+    {
+     "episode": 90,
+     "acc": 0.611
+    },
+    {
+     "episode": 100,
+     "acc": 0.515
+    }
+   ],
+   "levelsStart": [
+    0.637,
+    0.258,
+    0.229,
+    0.074,
+    0.031
+   ],
+   "levelsEnd": [
+    0.793,
+    0.569,
+    0.584,
+    0.363,
+    0.267
+   ],
+   "births": {
+    "planner": 48.7,
+    "executor": 60.633,
+    "verifier": 47.633,
+    "answer": 71.167
+   },
+   "bankrupt": 214.367,
+   "pop": 18.767
+  },
+  "rewardX4": {
+   "initial": 0.246,
+   "final": 0.46,
+   "finalSd": 0.233,
+   "meanCk": 0.379,
+   "best": 0.538,
+   "bestOfRuns": 0.96,
+   "curve": [
+    {
+     "episode": 0,
+     "acc": 0.246
+    },
+    {
+     "episode": 10,
+     "acc": 0.283
+    },
+    {
+     "episode": 20,
+     "acc": 0.283
+    },
+    {
+     "episode": 30,
+     "acc": 0.334
+    },
+    {
+     "episode": 40,
+     "acc": 0.342
+    },
+    {
+     "episode": 50,
+     "acc": 0.372
+    },
+    {
+     "episode": 60,
+     "acc": 0.39
+    },
+    {
+     "episode": 70,
+     "acc": 0.44
+    },
+    {
+     "episode": 80,
+     "acc": 0.439
+    },
+    {
+     "episode": 90,
+     "acc": 0.444
+    },
+    {
+     "episode": 100,
+     "acc": 0.46
+    }
+   ],
+   "levelsStart": [
+    0.637,
+    0.258,
+    0.229,
+    0.074,
+    0.031
+   ],
+   "levelsEnd": [
+    0.794,
+    0.496,
+    0.504,
+    0.293,
+    0.213
+   ],
+   "births": {
+    "planner": 12.167,
+    "executor": 36.267,
+    "verifier": 19.567,
+    "answer": 86.8
+   },
+   "bankrupt": 143.433,
+   "pop": 16.367
+  }
+ },
+ "rules": {
+  "released": {
+   "initial": 0.246,
+   "final": 0.609,
+   "finalSd": 0.223,
+   "meanCk": 0.441,
+   "best": 0.737,
+   "bestOfRuns": 0.905,
+   "curve": [
+    {
+     "episode": 0,
+     "acc": 0.246
+    },
+    {
+     "episode": 10,
+     "acc": 0.26
+    },
+    {
+     "episode": 20,
+     "acc": 0.236
+    },
+    {
+     "episode": 30,
+     "acc": 0.368
+    },
+    {
+     "episode": 40,
+     "acc": 0.397
+    },
+    {
+     "episode": 50,
+     "acc": 0.405
+    },
+    {
+     "episode": 60,
+     "acc": 0.473
+    },
+    {
+     "episode": 70,
+     "acc": 0.536
+    },
+    {
+     "episode": 80,
+     "acc": 0.538
+    },
+    {
+     "episode": 90,
+     "acc": 0.586
+    },
+    {
+     "episode": 100,
+     "acc": 0.609
+    }
+   ],
+   "levelsStart": [
+    0.637,
+    0.258,
+    0.229,
+    0.074,
+    0.031
+   ],
+   "levelsEnd": [
+    0.813,
+    0.681,
+    0.679,
+    0.487,
+    0.384
+   ],
+   "births": {
+    "planner": 20.167,
+    "executor": 50.333,
+    "verifier": 22.3,
+    "answer": 89.733
+   },
+   "bankrupt": 169.067,
+   "pop": 18.467
+  },
+  "paperEq1": {
+   "initial": 0.246,
+   "final": 0.462,
+   "finalSd": 0.214,
+   "meanCk": 0.368,
+   "best": 0.618,
+   "bestOfRuns": 0.9,
+   "curve": [
+    {
+     "episode": 0,
+     "acc": 0.246
+    },
+    {
+     "episode": 10,
+     "acc": 0.273
+    },
+    {
+     "episode": 20,
+     "acc": 0.287
+    },
+    {
+     "episode": 30,
+     "acc": 0.318
+    },
+    {
+     "episode": 40,
+     "acc": 0.325
+    },
+    {
+     "episode": 50,
+     "acc": 0.318
+    },
+    {
+     "episode": 60,
+     "acc": 0.404
+    },
+    {
+     "episode": 70,
+     "acc": 0.401
+    },
+    {
+     "episode": 80,
+     "acc": 0.457
+    },
+    {
+     "episode": 90,
+     "acc": 0.432
+    },
+    {
+     "episode": 100,
+     "acc": 0.462
+    }
+   ],
+   "levelsStart": [
+    0.637,
+    0.258,
+    0.229,
+    0.074,
+    0.031
+   ],
+   "levelsEnd": [
+    0.808,
+    0.511,
+    0.481,
+    0.291,
+    0.221
+   ],
+   "births": {
+    "planner": 20.2,
+    "executor": 43.1,
+    "verifier": 22.233,
+    "answer": 85.133
+   },
+   "bankrupt": 156.267,
+   "pop": 19.4
+  },
+  "chainSplit": {
+   "initial": 0.246,
+   "final": 0.498,
+   "finalSd": 0.234,
+   "meanCk": 0.426,
+   "best": 0.697,
+   "bestOfRuns": 0.95,
+   "curve": [
+    {
+     "episode": 0,
+     "acc": 0.246
+    },
+    {
+     "episode": 10,
+     "acc": 0.301
+    },
+    {
+     "episode": 20,
+     "acc": 0.289
+    },
+    {
+     "episode": 30,
+     "acc": 0.34
+    },
+    {
+     "episode": 40,
+     "acc": 0.383
+    },
+    {
+     "episode": 50,
+     "acc": 0.423
+    },
+    {
+     "episode": 60,
+     "acc": 0.474
+    },
+    {
+     "episode": 70,
+     "acc": 0.492
+    },
+    {
+     "episode": 80,
+     "acc": 0.496
+    },
+    {
+     "episode": 90,
+     "acc": 0.562
+    },
+    {
+     "episode": 100,
+     "acc": 0.498
+    }
+   ],
+   "levelsStart": [
+    0.637,
+    0.258,
+    0.229,
+    0.074,
+    0.031
+   ],
+   "levelsEnd": [
+    0.783,
+    0.559,
+    0.538,
+    0.348,
+    0.26
+   ],
+   "births": {
+    "planner": 36.5,
+    "executor": 62.367,
+    "verifier": 31.333,
+    "answer": 40.967
+   },
+   "bankrupt": 156.733,
+   "pop": 19.433
+  },
+  "fixedBids": {
+   "initial": 0.246,
+   "final": 0.528,
+   "finalSd": 0.175,
+   "meanCk": 0.39,
+   "best": 0.608,
+   "bestOfRuns": 0.85,
+   "curve": [
+    {
+     "episode": 0,
+     "acc": 0.246
+    },
+    {
+     "episode": 10,
+     "acc": 0.268
+    },
+    {
+     "episode": 20,
+     "acc": 0.267
+    },
+    {
+     "episode": 30,
+     "acc": 0.305
+    },
+    {
+     "episode": 40,
+     "acc": 0.343
+    },
+    {
+     "episode": 50,
+     "acc": 0.353
+    },
+    {
+     "episode": 60,
+     "acc": 0.379
+    },
+    {
+     "episode": 70,
+     "acc": 0.461
+    },
+    {
+     "episode": 80,
+     "acc": 0.466
+    },
+    {
+     "episode": 90,
+     "acc": 0.529
+    },
+    {
+     "episode": 100,
+     "acc": 0.528
+    }
+   ],
+   "levelsStart": [
+    0.637,
+    0.258,
+    0.229,
+    0.074,
+    0.031
+   ],
+   "levelsEnd": [
+    0.783,
+    0.607,
+    0.6,
+    0.373,
+    0.274
+   ],
+   "births": {
+    "planner": 19.567,
+    "executor": 38.633,
+    "verifier": 18.533,
+    "answer": 103
+   },
+   "bankrupt": 167.267,
+   "pop": 17.467
+  }
+ },
+ "curriculum": {
+  "easyToHard": {
+   "initial": 0.246,
+   "final": 0.609,
+   "finalSd": 0.223,
+   "meanCk": 0.441,
+   "best": 0.737,
+   "bestOfRuns": 0.905,
+   "curve": [
+    {
+     "episode": 0,
+     "acc": 0.246
+    },
+    {
+     "episode": 10,
+     "acc": 0.26
+    },
+    {
+     "episode": 20,
+     "acc": 0.236
+    },
+    {
+     "episode": 30,
+     "acc": 0.368
+    },
+    {
+     "episode": 40,
+     "acc": 0.397
+    },
+    {
+     "episode": 50,
+     "acc": 0.405
+    },
+    {
+     "episode": 60,
+     "acc": 0.473
+    },
+    {
+     "episode": 70,
+     "acc": 0.536
+    },
+    {
+     "episode": 80,
+     "acc": 0.538
+    },
+    {
+     "episode": 90,
+     "acc": 0.586
+    },
+    {
+     "episode": 100,
+     "acc": 0.609
+    }
+   ],
+   "levelsStart": [
+    0.637,
+    0.258,
+    0.229,
+    0.074,
+    0.031
+   ],
+   "levelsEnd": [
+    0.813,
+    0.681,
+    0.679,
+    0.487,
+    0.384
+   ],
+   "births": {
+    "planner": 20.167,
+    "executor": 50.333,
+    "verifier": 22.3,
+    "answer": 89.733
+   },
+   "bankrupt": 169.067,
+   "pop": 18.467
+  },
+  "hardToEasy": {
+   "initial": 0.246,
+   "final": 0.605,
+   "finalSd": 0.168,
+   "meanCk": 0.553,
+   "best": 0.771,
+   "bestOfRuns": 0.925,
+   "curve": [
+    {
+     "episode": 0,
+     "acc": 0.246
+    },
+    {
+     "episode": 10,
+     "acc": 0.371
+    },
+    {
+     "episode": 20,
+     "acc": 0.497
+    },
+    {
+     "episode": 30,
+     "acc": 0.575
+    },
+    {
+     "episode": 40,
+     "acc": 0.561
+    },
+    {
+     "episode": 50,
+     "acc": 0.538
+    },
+    {
+     "episode": 60,
+     "acc": 0.6
+    },
+    {
+     "episode": 70,
+     "acc": 0.622
+    },
+    {
+     "episode": 80,
+     "acc": 0.596
+    },
+    {
+     "episode": 90,
+     "acc": 0.565
+    },
+    {
+     "episode": 100,
+     "acc": 0.605
+    }
+   ],
+   "levelsStart": [
+    0.637,
+    0.258,
+    0.229,
+    0.074,
+    0.031
+   ],
+   "levelsEnd": [
+    0.867,
+    0.737,
+    0.67,
+    0.438,
+    0.312
+   ],
+   "births": {
+    "planner": 25.9,
+    "executor": 50.3,
+    "verifier": 21.8,
+    "answer": 81.333
+   },
+   "bankrupt": 164.433,
+   "pop": 19.9
+  }
+ },
+ "baselines": {
+  "initialTeamWithAuction": 0.246,
+  "sameTeamNoMarket": 0.246
+ },
+ "topology": {
+  "start": {
+   "steps": [
+    3.594,
+    5.215,
+    5.123,
+    6.573,
+    6.443
+   ],
+   "verifierTurns": [
+    0.542,
+    0.918,
+    0.835,
+    1.215,
+    1.275
+   ],
+   "answerTurns": [
+    0.908,
+    1.26,
+    1.336,
+    1.62,
+    1.526
+   ]
+  },
+  "end": {
+   "steps": [
+    3.711,
+    5.715,
+    5.738,
+    7.244,
+    7.093
+   ],
+   "verifierTurns": [
+    0.535,
+    1.031,
+    1.042,
+    1.343,
+    1.304
+   ],
+   "answerTurns": [
+    0.921,
+    1.508,
+    1.517,
+    2.051,
+    2.004
+   ]
+  },
+  "commonEnd": [
+   [
+    "L1 PEA",
+    507
+   ],
+   [
+    "L3 PEAEA",
+    373
+   ],
+   [
+    "L2 PEAEA",
+    365
+   ],
+   [
+    "L4 PEAEAEA",
+    299
+   ],
+   [
+    "L5 PEAEAEA",
+    283
+   ],
+   [
+    "L1 EA",
+    254
+   ],
+   [
+    "L2 EAEA",
+    211
+   ],
+   [
+    "L3 EAEA",
+    200
+   ],
+   [
+    "L4 EAEAEA",
+    179
+   ],
+   [
+    "L5 EAEAEA",
+    173
+   ],
+   [
+    "L4 PEVEVEVEVA",
+    164
+   ],
+   [
+    "L5 PEVEVEVEVA",
+    136
+   ]
+  ],
+  "commonStart": [
+   [
+    "L1 PEA",
+    631
+   ],
+   [
+    "L3 PEA",
+    292
+   ],
+   [
+    "L2 PEVEA",
+    242
+   ],
+   [
+    "L2 PEA",
+    228
+   ],
+   [
+    "L4 PEA",
+    209
+   ],
+   [
+    "L1 PEVA",
+    200
+   ],
+   [
+    "L3 PEAEA",
+    183
+   ],
+   [
+    "L5 PEA",
+    169
+   ],
+   [
+    "L3 PEVEA",
+    165
+   ],
+   [
+    "L5 PEVEA",
+    137
+   ],
+   [
+    "L2 PEAEA",
+    124
+   ],
+   [
+    "L1 PEVEA",
+    112
+   ]
+  ]
+ },
+ "theorem1": [
+  {
+   "situation": "Empty workspace",
+   "wins": 3000,
+   "avgPayoff": 22.563,
+   "avgBid": 16.431
+  },
+  {
+   "situation": "A plan was just written",
+   "wins": 2185,
+   "avgPayoff": 21.91,
+   "avgBid": 19.584
+  },
+  {
+   "situation": "A step was just solved, more to go",
+   "wins": 3818,
+   "avgPayoff": 14.262,
+   "avgBid": 24.217
+  },
+  {
+   "situation": "The last step was just solved, unchecked",
+   "wins": 2778,
+   "avgPayoff": 28.474,
+   "avgBid": 20.543
+  },
+  {
+   "situation": "A verifier flagged an error",
+   "wins": 747,
+   "avgPayoff": 15.995,
+   "avgBid": 21.169
+  },
+  {
+   "situation": "Checked OK, more steps to go",
+   "wins": 1658,
+   "avgPayoff": 21.003,
+   "avgBid": 21.299
+  },
+  {
+   "situation": "Checked OK, every step solved",
+   "wins": 665,
+   "avgPayoff": 30.462,
+   "avgBid": 18.46
+  },
+  {
+   "situation": "The answer agent said it is not ready",
+   "wins": 2066,
+   "avgPayoff": 27.426,
+   "avgBid": 23.999
+  }
+ ],
+ "traits": {
+  "start": {
+   "planner": {
+    "thorough": 0.342
+   },
+   "executor": {
+    "skill": -0.105,
+    "selfCheck": 0.074
+   },
+   "verifier": {
+    "detect": 0.46,
+    "falseAlarm": 0.198
+   },
+   "answer": {
+    "patience": 0.651,
+    "care": 0.452
+   }
+  },
+  "end": {
+   "planner": {
+    "thorough": 0.529
+   },
+   "executor": {
+    "skill": 0.143,
+    "selfCheck": 0.592
+   },
+   "verifier": {
+    "detect": 0.563,
+    "falseAlarm": 0.192
+   },
+   "answer": {
+    "patience": 0.833,
+    "care": 0.554
+   }
+  }
+ },
+ "volatility": {
+  "avgCheckpointJump": 0.147,
+  "meanVsBestGap": 0.128
+ },
+ "seconds": 11.579
+}

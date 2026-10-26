@@ -1,0 +1,14 @@
+{
+  "name": "economy-of-minds-replica",
+  "version": "1.0.0",
+  "description": "Economy of Minds (Qi et al., 2026), replicated: the released engine ported line by line to run in the browser with real Claude agents, plus an instant toy model.",
+  "private": true,
+  "license": "MIT",
+  "author": "Krishiv Rambhia",
+  "scripts": {
+    "test": "node test-replica.js && node run-tests.js",
+    "build": "node build.js",
+    "experiments": "node experiments.js 30",
+    "prompts": "python3 gen-prompts.py ../EoM"
+  }
+}

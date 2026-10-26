@@ -1,0 +1,91 @@
+    <section id="replica" aria-label="The replica" style="padding-top:22px">
+      <div class="head"><span class="kicker">The replica</span><h2>Their code, line by line, with real agents</h2>
+        <p>The authors' released engine, ported to run in this page: the same auction, payments, rent, bankruptcy, replays, births, prompts and config. The prompts are copied out of their source code byte for byte. The agents are Claude, called on the account of whoever opens the page. Pick an experiment and press Start, or watch a saved run.</p></div>
+
+      <div class="rp-presets" id="rpPresets" role="radiogroup" aria-label="Experiment"></div>
+
+      <div class="panel rp-bar">
+        <div class="rp-actions">
+          <button class="btn primary" id="rpStart">Start</button>
+          <button class="btn" id="rpStopSoft" disabled>Stop after this task</button>
+          <button class="btn" id="rpStopHard" disabled>Stop now</button>
+          <p class="rp-status" id="rpStatus" aria-live="polite"></p>
+        </div>
+        <div class="rp-meters">
+          <div class="meter"><span>Tasks trained</span><b id="rpMTasks">0</b></div>
+          <div class="meter"><span>Test score</span><b id="rpMScore">-</b></div>
+          <div class="meter"><span>Agents alive</span><b id="rpMPop">-</b></div>
+          <div class="meter"><span>Bankruptcies</span><b id="rpMBk">0</b></div>
+          <div class="meter"><span>Model calls</span><b id="rpMCalls">0</b></div>
+        </div>
+        <details class="rp-adv">
+          <summary>Models and settings</summary>
+          <div class="rp-adv-grid">
+            <div class="rp-fields">
+              <span class="field"><label for="rpTierAct">Agents</label><select id="rpTierAct"><option value="quick">Quick (Haiku class)</option><option value="default">Default</option><option value="complex">Complex</option></select></span>
+              <span class="field"><label for="rpTierWake">Wake-up checks</label><select id="rpTierWake"><option value="quick">Quick</option><option value="default">Default</option></select></span>
+              <span class="field"><label for="rpTierJudge">Judge</label><select id="rpTierJudge"><option value="quick">Quick</option><option value="default">Default</option><option value="complex">Complex</option></select></span>
+              <span class="field"><label for="rpConc">Calls at once</label><select id="rpConc"><option>1</option><option selected>2</option><option>3</option></select></span>
+            </div>
+            <div class="rp-knobs" id="rpKnobs"></div>
+            <div class="switches">
+              <button class="switch" role="switch" id="rpNoAuction" aria-checked="false"><span>Paper ablation: no auction (random awake agent acts)</span><span class="track"></span></button>
+              <button class="switch" role="switch" id="rpNoExplore" aria-checked="false"><span>Paper ablation: no exploration (no repairs)</span><span class="track"></span></button>
+              <button class="switch" role="switch" id="rpNoExploit" aria-checked="false"><span>Paper ablation: no exploitation (no copies)</span><span class="track"></span></button>
+            </div>
+          </div>
+          <p class="cap" id="rpAdvNote"></p>
+        </details>
+      </div>
+
+      <div class="rp-stage">
+        <div class="rp-floor">
+          <div class="rp-taskbar">
+            <div class="rp-taskhead"><span class="rp-mode" id="rpMode">Idle</span><b id="rpTaskTitle">No run yet</b><span class="muted" id="rpTaskSub"></span></div>
+            <div class="rp-turns" id="rpTurns" aria-hidden="true"></div>
+          </div>
+          <div class="rp-problem" id="rpProblem"><p class="muted">The problem the team is working on appears here.</p></div>
+          <p class="rp-narr" id="rpNarr" aria-live="polite">Pick an experiment above and press Start. Each agent card shows its credits (brass bar), its bid, and whether it woke up for this turn.</p>
+          <div class="rp-banks">
+            <div class="rp-bank" id="rpVoid"><span>Nobody</span><small>first bids go here</small><b>0.00</b></div>
+            <div class="rp-bank" id="rpJudge"><span>Score</span><small>reward for the answer</small><b>-</b></div>
+            <div class="rp-bank" id="rpRentBox"><span>Rent</span><small id="rpRentSub">every 3 tasks</small><b id="rpRentAmt">-</b></div>
+          </div>
+          <div class="rp-roles" id="rpRoles"></div>
+          <div class="rp-testwall" id="rpTestWall" hidden></div>
+        </div>
+        <div class="panel rp-board">
+          <div class="rp-board-head"><h3>Shared workspace</h3><span class="muted" id="rpBoardSub">What the agents wrote, turn by turn</span></div>
+          <div class="rp-msgs" id="rpBoard"></div>
+        </div>
+      </div>
+
+      <div class="two">
+        <div class="panel"><h3>Test score of the frozen team</h3>
+          <canvas class="chart short" id="rpChart" aria-label="Replica test score over training"></canvas>
+          <p class="cap" id="rpChartCap">Each point is a periodic test: a frozen copy of the team tries the test tasks with no money moving (the code's <code>_eval_forward</code>).</p></div>
+        <div class="panel"><h3>Prompts the market rewrote</h3>
+          <div class="rp-births" id="rpBirths"><p class="muted">New agents show up here with their prompt before and after. Brass lines are new.</p></div></div>
+      </div>
+      <div class="two">
+        <div class="panel"><h3>Money ledger, this task</h3><ol class="rp-ledger" id="rpLedger"><li class="muted">Every credit that moves is listed here.</li></ol></div>
+        <div class="panel"><h3>Saved runs</h3><p class="cap" id="rpRunsNote" style="margin-top:0">Runs save after every task, like the code's checkpoints, so you can close the tab and resume later.</p><ul class="rp-runs" id="rpRuns"></ul>
+          <div class="row" style="margin-top:10px"><button class="btn" id="rpExport" disabled>Download this run (JSON)</button><span class="seg" role="group" aria-label="Replay speed" id="rpSpeed"><button data-v="1" aria-pressed="true">1x</button><button data-v="3">3x</button><button data-v="10">10x</button></span></div></div>
+      </div>
+
+      <details class="panel rules" style="margin-top:16px">
+        <summary>What is copied exactly, and what is not</summary>
+        <div class="tablewrap wide"><table><thead><tr><th>Part</th><th>Released code</th><th>The replica</th><th>Same?</th></tr></thead><tbody>
+          <tr><td>Auction, payments, bids, rewards, rollback, rent, bankruptcy, births, refill, role recovery, terminal turn, frozen test</td><td><code>base/mas.py</code>, <code>population.py</code>, <code>agent.py</code>, <code>config.py</code></td><td>Ported line by line. 23 tests drive it with a scripted model and check each rule against the Python.</td><td><span class="verdict yes">Same</span></td></tr>
+          <tr><td>Prompts: roles, wake-up, next step, copy, repair, judge</td><td><code>base/prompts.py</code>, <code>researchworld/prompts.py</code>, <code>agent.py</code></td><td>Pulled out of the Python source by a script and checked byte for byte.</td><td><span class="verdict yes">Same</span></td></tr>
+          <tr><td>Config</td><td><code>global_configs/train_research.json</code></td><td>Every value copied. The "exact" preset changes nothing.</td><td><span class="verdict yes">Same</span></td></tr>
+          <tr><td>Training loop</td><td><code>pipeline.Trainer.train</code>: tasks in order, 2 epochs, test every 3 tasks, checkpoint after every task</td><td>Same loop, same order, saves after every task and resumes from there.</td><td><span class="verdict yes">Same</span></td></tr>
+          <tr><td>Science tasks</td><td>FrontierScience-Research, 40 train + 19 test, rubric judge, pass at 0.5</td><td>The same 59 tasks and rubrics from the repo.</td><td><span class="verdict yes">Same</span></td></tr>
+          <tr><td>Model</td><td>A local model at temperature 0.9. The paper used Llama-3.1-8B and Gemma-2-9B. Wake-up checks use gpt-5-nano.</td><td>Claude, at the tier you pick. A page cannot set the temperature.</td><td><span class="verdict no">Different</span></td></tr>
+          <tr><td>Parallel calls</td><td>10 wake-up checks and 10 test tasks at once</td><td>Queued, 2 calls at once by default. Same results, slower.</td><td><span class="verdict part">Slower</span></td></tr>
+          <tr><td>Random numbers</td><td>Python's global <code>random</code>, unseeded</td><td>A seeded generator, so a run can resume and replay.</td><td><span class="verdict part">Equivalent</span></td></tr>
+          <tr><td>MATH setup</td><td>Not in the release</td><td>Built from the paper (Sec. 3.1, App. D.2): planner, executor, verifier, 128-token budget, 20 problems per level easy to hard. The paper does not say who answers, so the executor does. The budget is a cut at 480 characters, since a page cannot set max_tokens.</td><td><span class="verdict part">From the paper</span></td></tr>
+          <tr><td>Ablations (Table 2)</td><td>Not in the release</td><td>Switches that do what the paper describes. Off by default.</td><td><span class="verdict part">From the paper</span></td></tr>
+        </tbody></table></div>
+      </details>
+    </section>
