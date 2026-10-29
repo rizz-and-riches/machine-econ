@@ -1,5 +1,5 @@
 {
-  "name": "economy-of-minds-replica",
+  "name": "machine-econ",
   "version": "1.0.0",
   "description": "Economy of Minds (Qi et al., 2026), replicated: the released engine ported line by line to run in the browser with real Claude agents, plus an instant toy model.",
   "private": true,
