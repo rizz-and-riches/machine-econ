@@ -163,7 +163,7 @@ async function listRuns() {
 }
 function renderRuns() {
   const ul = $('rpRuns'); ul.innerHTML = '';
-  if (!db) { ul.innerHTML = '<li class="muted" style="display:block">Saved runs need this page opened on claude.ai or in the Claude app.</li>'; return; }
+  if (!db) { ul.innerHTML = '<li class="muted" style="display:block">Saved runs need this page opened on claude.ai or in the Claude app, signed in.</li>'; return; }
   if (!saved.list.length) { ul.innerHTML = '<li class="muted" style="display:block">No saved runs yet. The first run you start appears here.</li>'; return; }
   for (const r of saved.list) {
     const li = document.createElement('li'); const last = r.tests && r.tests.length ? r.tests[r.tests.length - 1] : null, first = r.tests && r.tests.length ? r.tests[0] : null;
@@ -567,8 +567,8 @@ function boot() {
     if (s) { $('rpStart').disabled = !!(run && run.running); status('Ready. A run uses <b>your</b> Claude usage. The first call asks for permission.'); }
     else status('This view cannot call Claude, so it cannot start runs. Saved runs can still be watched.');
     renderRuns();
-  }).catch(() => {});
-  C.use('db').then((d) => { db = d; listRuns().then(() => { const first = saved.list.find((r) => r.tasksCompleted > 0); if (first && !(run && run.running)) startReplay(first.id); }); }).catch(() => {});
+  }).catch(() => { status('This view cannot call Claude, so it cannot start runs. Sign in to Claude to run it, or try the toy model below, which works anywhere.'); renderRuns(); });
+  C.use('db').then((d) => { db = d; listRuns().then(() => { const first = saved.list.find((r) => r.tasksCompleted > 0); if (first && !(run && run.running)) startReplay(first.id); }); }).catch(() => { renderRuns(); });
   C.use('downloads').then((d) => { downloads = d; }).catch(() => {});
 }
 boot();
