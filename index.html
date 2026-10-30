@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 </head>
 <body>
-<title>Economy of Minds Replica</title>
+<title>Recreating Economy of Minds</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="The Economy of Minds released code, ported line by line to run in the browser with real Claude agents, plus a toy model for instant experiments.">
+<meta name="description" content="An implementation of the Economy of Minds agent economy, run with real Claude agents, with an interactive toy model to explain the mechanisms.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap">
@@ -214,6 +214,16 @@ footer { padding-block: 26px 44px; color: var(--muted); font-size: 0.9rem; max-w
 
 /* ---------- Replica ---------- */
 .toyhead .stats { margin-top: 10px; }
+.rp-report { margin-bottom: 12px; }
+.rp-report .panel { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px 28px; align-items: center; border-color: var(--brass); }
+.rp-report .big { font-family: var(--display); font-weight: 780; font-size: clamp(2rem, 4vw, 3rem); font-variant-numeric: tabular-nums; line-height: 1; }
+.rp-report .facts { display: flex; flex-wrap: wrap; gap: 6px 26px; }
+.rp-report .facts div { display: flex; flex-direction: column; }
+.rp-report .facts span { color: var(--muted); font-size: 0.82rem; }
+.rp-report .facts b { font-family: var(--display); font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.rp-report .empty { border-style: dashed; border-color: var(--line); grid-template-columns: minmax(0, 1fr); }
+.rp-honest { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px 28px; margin-bottom: 12px; }
+.rp-honest ul { margin: 6px 0 0; padding-left: 1.1em; display: grid; gap: 4px; font-size: 0.95rem; }
 .rp-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
 .rp-preset { all: unset; box-sizing: border-box; cursor: pointer; background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: grid; gap: 6px; align-content: start; min-width: 0; }
 .rp-preset:hover { border-color: var(--muted); }
@@ -349,6 +359,7 @@ footer { padding-block: 26px 44px; color: var(--muted); font-size: 0.9rem; max-w
 }
 @media (max-width: 760px) {
   .rp-presets { grid-template-columns: minmax(0, 1fr); }
+  .rp-report .panel, .rp-honest { grid-template-columns: minmax(0, 1fr); }
   .rp-knobs { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   .rp-roles { grid-template-columns: minmax(0, 1fr); }
   .rp-col { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -377,26 +388,35 @@ footer { padding-block: 26px 44px; color: var(--muted); font-size: 0.9rem; max-w
   <header class="top">
     <div>
       <p class="kicker" style="margin-bottom:10px">By Krishiv Rambhia · TKS Build stage, October 2026</p>
-      <h1>Economy of Minds, replicated</h1>
-      <p class="q">Can a market make a team of AI agents <b>more capable over time</b>? This page runs the authors' released code, ported line by line, with real Claude agents: they decide when to wake up, bid for turns, pay whoever helped them, go bankrupt, and get their prompts rewritten.</p>
-      <p class="q" style="margin-top:8px"><b>Two ways to look:</b> the <a href="#replica">replica</a> runs real Claude agents on your own Claude account (pick "Quick look", press Start). The <a href="#live">toy model</a> runs instantly with no AI and no account.</p>
+      <h1>Recreating Economy of Minds</h1>
+      <p class="q">An implementation of its agent economy, run with <b>real Claude agents</b>, with an interactive toy model to explain the mechanisms. Agents decide when to wake up, bid for turns, pay whoever helped them, go bankrupt, and get their prompts rewritten.</p>
+      <p class="q" style="margin-top:8px"><b>Two ways to look:</b> <a href="#replica">the build</a> runs real Claude agents on your own Claude account (watch the saved run, or pick "Quick look" and press Start). <a href="#live">The toy model</a> explains the mechanism instantly, with no AI and no account.</p>
     </div>
   </header>
   <nav class="jump" aria-label="Sections">
-    <a href="#replica">The replica</a>
-    <a href="#live">Toy model</a>
+    <a href="#replica">The build: real agents</a>
+    <a href="#live">How it works (toy)</a>
     <a href="#credits">1. Follow the credits</a>
     <a href="#ablation">2. Turn parts off</a>
     <a href="#prices">3. Prices find value</a>
     <a href="#workflows">4. Workflows emerge</a>
-    <a href="#scorecard">Toy vs paper</a>
+    <a href="#scorecard">Toy patterns vs paper</a>
     <a href="#hood">Under the hood</a>
   </nav>
 
   <main>
     <section id="replica" aria-label="The replica" style="padding-top:22px">
-      <div class="head"><span class="kicker">The replica</span><h2>Their code, line by line, with real agents</h2>
-        <p>The authors' released engine, ported to run in this page: the same auction, payments, rent, bankruptcy, replays, births, prompts and config. The prompts are copied out of their source code byte for byte. The agents are Claude, called on the account of whoever opens the page. Pick an experiment and press Start, or watch a saved run.</p></div>
+      <div class="head"><span class="kicker">The build</span><h2>The agent economy, running with real agents</h2>
+        <p>The authors' released engine, ported line by line: the same auction, payments, rent, bankruptcy, replays, births, prompts and config. The prompts are pulled out of their source code byte for byte. The agents are Claude, called on the account of whoever presses Start. Saved runs replay for free.</p></div>
+
+      <div class="rp-report" id="rpReport"></div>
+
+      <div class="rp-honest panel">
+        <div><span class="kicker">What this shows</span>
+          <ul><li>The paper's <b>system</b>, rebuilt and checked rule by rule against the released code (23 tests).</li><li>Real agents acting, paying, going bankrupt and getting their prompts rewritten, with the score before and after.</li></ul></div>
+        <div><span class="kicker">What it does not show</span>
+          <ul><li>The paper's <b>scores</b>. The paper used Llama-3.1-8B and Gemma-2-9B. This uses Claude, which is far stronger, so the starting team already scores higher and has less room to improve.</li><li>Anything from the toy model below. The toy has programmed behaviour and made-up tasks. It explains the mechanism, it does not reproduce findings.</li></ul></div>
+      </div>
 
       <div class="rp-presets" id="rpPresets" role="radiogroup" aria-label="Experiment"></div>
 
@@ -470,8 +490,8 @@ footer { padding-block: 26px 44px; color: var(--muted); font-size: 0.9rem; max-w
           <div class="row" style="margin-top:10px"><button class="btn" id="rpExport" disabled>Download this run (JSON)</button><span class="seg" role="group" aria-label="Replay speed" id="rpSpeed"><button data-v="1" aria-pressed="true">1x</button><button data-v="3">3x</button><button data-v="10">10x</button></span></div></div>
       </div>
 
-      <details class="panel rules" style="margin-top:16px">
-        <summary>What is copied exactly, and what is not</summary>
+      <details class="panel rules" style="margin-top:16px" open>
+        <summary>What matches the original, and what I changed</summary>
         <div class="tablewrap wide"><table><thead><tr><th>Part</th><th>Released code</th><th>The replica</th><th>Same?</th></tr></thead><tbody>
           <tr><td>Auction, payments, bids, rewards, rollback, rent, bankruptcy, births, refill, role recovery, terminal turn, frozen test</td><td><code>base/mas.py</code>, <code>population.py</code>, <code>agent.py</code>, <code>config.py</code></td><td>Ported line by line. 23 tests drive it with a scripted model and check each rule against the Python.</td><td><span class="verdict yes">Same</span></td></tr>
           <tr><td>Prompts: roles, wake-up, next step, copy, repair, judge</td><td><code>base/prompts.py</code>, <code>researchworld/prompts.py</code>, <code>agent.py</code></td><td>Pulled out of the Python source by a script and checked byte for byte.</td><td><span class="verdict yes">Same</span></td></tr>
@@ -488,8 +508,8 @@ footer { padding-block: 26px 44px; color: var(--muted); font-size: 0.9rem; max-w
     </section>
 
     <section id="live" aria-label="Toy model">
-      <div class="head toyhead"><span class="kicker">Toy model, instant, no AI calls</span><h2>The same market, with stand-in agents</h2>
-        <p>A real run takes hours. This toy runs the same economic rules with fake agents whose "prompt" is a wake-up list and a few skill numbers, so you can watch hundreds of tasks in seconds and repeat the paper's experiments. It tests the economics, not reasoning.</p>
+      <div class="head toyhead"><span class="kicker">How the mechanism works</span><h2>A toy model of the same market</h2>
+        <p>A real run takes hours, so this toy runs the same economic rules with stand-in agents whose "prompt" is a wake-up list and a few skill numbers. You can watch hundreds of tasks in seconds and see each rule at work. Its agents and tasks are programmed by me, so its numbers explain the mechanism. They are not evidence about the paper.</p>
         <dl class="stats" aria-live="polite">
           <div><dt>Toy test score now</dt><dd class="hero-num" id="sScore">0%</dd></div>
           <div><dt>Before training</dt><dd id="sStart">0%</dd></div>
@@ -658,7 +678,7 @@ footer { padding-block: 26px 44px; color: var(--muted); font-size: 0.9rem; max-w
     </section>
 
     <section id="scorecard" aria-label="Rebuild vs paper">
-      <div class="head"><span class="kicker">Toy model</span><h2>Toy vs paper</h2><p>Every claim the paper makes that the toy can test, and how it came out over 30 recorded runs. Claims about language models need the replica above.</p></div>
+      <div class="head"><span class="kicker">Toy model</span><h2>Toy patterns vs the paper</h2><p>Does the mechanism behave the way the paper describes, with programmed agents? 30 recorded toy runs. "Same pattern" means the toy moves in the paper's direction. It is not a reproduction of the paper's findings, which needs real agents.</p></div>
       <div class="tablewrap wide"><table><thead><tr><th>Paper claim</th><th>Paper evidence</th><th>This rebuild</th><th>Verdict</th></tr></thead><tbody id="tScore"></tbody></table></div>
     </section>
 
@@ -2257,7 +2277,7 @@ function saveCheckpoint(stateJson) {
 }
 function runSummary(st) {
   const p = presetBy(st.preset) || {};
-  return { label: st.label || p.label || st.preset, preset: st.preset, adapter: st.adapter, created: run.created, updated: Date.now(), status: st.done ? 'done' : run.running ? 'running' : 'stopped', tasksCompleted: st.tasksCompleted, totalTasks: st.trainIds.length * st.numEpochs, calls: st.calls || 0, pop: st.mas ? st.mas.population.length : null, tests: st.tests.map((t) => ({ tasksCompleted: t.tasksCompleted, accuracy: t.accuracy, avgScore: t.avgScore, success: t.success, total: t.total })), tiers: Object.assign({}, ui.tiers), variant: !!(st.cfg.page) || /variant/.test(st.label || ''), bankruptcies: st.mas ? st.mas.bankruptcy_count : 0 };
+  return { label: st.label || p.label || st.preset, preset: st.preset, adapter: st.adapter, created: run.created, updated: Date.now(), status: st.done ? 'done' : run.running ? 'running' : 'stopped', tasksCompleted: st.tasksCompleted, totalTasks: st.trainIds.length * st.numEpochs, calls: st.calls || 0, pop: st.mas ? st.mas.population.length : null, tests: st.tests.map((t) => ({ tasksCompleted: t.tasksCompleted, accuracy: t.accuracy, avgScore: t.avgScore, success: t.success, total: t.total })), tiers: Object.assign({}, ui.tiers), births: st.births || 0, variant: !!(st.cfg.page) || /variant/.test(st.label || ''), bankruptcies: st.mas ? st.mas.bankruptcy_count : 0 };
 }
 async function loadRunState(id) {
   const ck = await db.doc('runs/' + id + '/ckpt/state').get(); if (!ck.exists) throw new Error('no checkpoint');
@@ -2276,7 +2296,27 @@ async function listRuns() {
   catch (e) { saved.list = []; }
   renderRuns();
 }
+function renderReport() {
+  const host = $('rpReport'); if (!host) return;
+  const withTests = saved.list.filter((r) => r.tests && r.tests.length);
+  const pick = withTests.find((r) => r.status === 'done') || withTests[0];
+  if (!pick) {
+    host.innerHTML = '<div class="panel empty"><div><span class="kicker">Completed real run</span><p style="margin-top:6px">' + (db ? 'No real run saved yet. Pick <b>Quick look</b> below and press Start. When it finishes, its before-and-after score, prompt rewrites and every payment show up here, and anyone with the link can replay it for free.' : 'Saved real runs show here when the page is opened on claude.ai or in the Claude app.') + '</p></div></div>';
+    return;
+  }
+  const f = pick.tests[0], l = pick.tests[pick.tests.length - 1], best = pick.tests.reduce((m, t) => Math.max(m, t.accuracy), 0);
+  const d = l.accuracy - f.accuracy, sc = pick.adapter === 'research' && l.avgScore != null;
+  host.innerHTML = '<div class="panel"><div><span class="kicker">' + (pick.status === 'done' ? 'Completed real run' : 'Latest real run (unfinished)') + '</span><h3 style="margin-top:4px">' + esc(pick.label) + '</h3><p class="muted" style="margin-top:2px">' + new Date(pick.created || pick.updated).toLocaleDateString() + ' · Claude agents · ' + pick.tasksCompleted + ' of ' + pick.totalTasks + ' training tasks</p>'
+    + '<div class="row" style="margin-top:12px;align-items:baseline;gap:14px"><span class="big">' + pct(f.accuracy) + ' <span class="muted">&rarr;</span> ' + pct(l.accuracy) + '</span><span class="' + (d < 0 ? 'bad' : 'muted') + '">' + (pick.tests.length < 2 ? 'only one test so far' : (d >= 0 ? '+' : '') + Math.round(d * 100) + ' points, test pass rate before and after training') + '</span></div>'
+    + (sc ? '<p class="muted" style="margin-top:6px">Average rubric score ' + f.avgScore.toFixed(2) + ' to ' + l.avgScore.toFixed(2) + '</p>' : '') + '</div>'
+    + '<div><div class="facts"><div><span>Best test</span><b>' + pct(best) + '</b></div><div><span>Prompt rewrites</span><b>' + (pick.births != null ? pick.births : '-') + '</b></div><div><span>Bankruptcies</span><b>' + (pick.bankruptcies || 0) + '</b></div><div><span>Model calls</span><b>' + (pick.calls || 0).toLocaleString() + '</b></div></div>'
+    + '<p class="cap">' + l.success + ' of ' + l.total + ' test tasks passed at the end. One run swings a lot, which is why the paper reports both the mean and the best of several runs.</p>'
+    + '<div class="row" style="margin-top:10px"><button class="btn primary" id="rpRepWatch">Watch this run</button><button class="btn" id="rpRepDl">Download</button></div></div></div>';
+  $('rpRepWatch').addEventListener('click', () => { startReplay(pick.id); document.querySelector('.rp-stage').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' }); });
+  $('rpRepDl').addEventListener('click', () => exportRun(pick.id));
+}
 function renderRuns() {
+  renderReport();
   const ul = $('rpRuns'); ul.innerHTML = '';
   if (!db) { ul.innerHTML = '<li class="muted" style="display:block">Saved runs need this page opened on claude.ai or in the Claude app, signed in.</li>'; return; }
   if (!saved.list.length) { ul.innerHTML = '<li class="muted" style="display:block">No saved runs yet. The first run you start appears here.</li>'; return; }
@@ -2356,7 +2396,7 @@ async function go(id, st, created) {
     }
     saveChain.then(listRuns);
     const used = (run.state.calls || 0) - callsAtTask; callsAtTask = run.state.calls || 0; run.taskCalls.push(used);
-    if (!more) { status('Finished <b>' + esc(run.state.label) + '</b>: ' + run.state.tasksCompleted + ' training tasks, ' + (run.state.calls || 0).toLocaleString() + ' model calls.'); break; }
+    if (!more) { run.state.done = true; run.lastCkpt = JSON.stringify(run.state); status('Finished <b>' + esc(run.state.label) + '</b>: ' + run.state.tasksCompleted + ' training tasks, ' + (run.state.calls || 0).toLocaleString() + ' model calls.'); break; }
     const left = run.state.trainIds.length * run.state.numEpochs - run.state.tasksCompleted;
     const avg = run.taskCalls.reduce((a, b) => a + b, 0) / run.taskCalls.length;
     status('Running <b>' + esc(run.state.label) + '</b>. ' + left + ' training tasks left, roughly ' + Math.round(avg * left).toLocaleString() + ' more calls at the current rate (tests add more).');
@@ -2367,6 +2407,7 @@ async function go(id, st, created) {
 function onEvent(type, p) {
   if (!run) return;
   const ev = Object.assign({ type }, p);
+  if (type === 'birth') run.state.births = (run.state.births || 0) + 1;
   if (type === 'checkpoint') { run.lastCkpt = JSON.stringify(p); saveCheckpoint(run.lastCkpt); return; }
   if (type === 'task:start' && p.mode === 'train') run.record = [];
   if (run.record && type !== 'act:text' && type !== 'test:event' && !type.startsWith('test')) run.record.push(ev);
@@ -5271,7 +5312,7 @@ function drawCurr() {
 }
 function renderScorecard(A) {
   const F = R.full, S = R.sensitivity, T1 = R.theorem1.filter((t) => t.wins && t.avgBid <= t.avgPayoff + 1).length;
-  const v = (k) => '<span class="verdict ' + k + '">' + { yes: 'Replicated', part: 'Partly', no: 'Not replicated', na: 'Use the replica' }[k] + '</span>';
+  const v = (k) => '<span class="verdict ' + k + '">' + { yes: 'Same pattern', part: 'Partly', no: 'Different', na: 'Real agents only' }[k] + '</span>';
   const rows = [
     ['A weak team gets much stronger', 'MATH: 15.9% to 57.0% (Llama-8B)', p1(F.initial) + ' to ' + p1(F.final) + ' at the end, ' + p1(F.best) + ' at the best checkpoint', 'yes'],
     ['Gains reach the hardest problems', 'Fig. 6: level 5 rises from about 10% to 20%', 'Level 5: ' + p1(F.levelsStart[4]) + ' to ' + p1(F.levelsEnd[4]), 'yes'],

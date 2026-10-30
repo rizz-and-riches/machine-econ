@@ -142,7 +142,7 @@ function saveCheckpoint(stateJson) {
 }
 function runSummary(st) {
   const p = presetBy(st.preset) || {};
-  return { label: st.label || p.label || st.preset, preset: st.preset, adapter: st.adapter, created: run.created, updated: Date.now(), status: st.done ? 'done' : run.running ? 'running' : 'stopped', tasksCompleted: st.tasksCompleted, totalTasks: st.trainIds.length * st.numEpochs, calls: st.calls || 0, pop: st.mas ? st.mas.population.length : null, tests: st.tests.map((t) => ({ tasksCompleted: t.tasksCompleted, accuracy: t.accuracy, avgScore: t.avgScore, success: t.success, total: t.total })), tiers: Object.assign({}, ui.tiers), variant: !!(st.cfg.page) || /variant/.test(st.label || ''), bankruptcies: st.mas ? st.mas.bankruptcy_count : 0 };
+  return { label: st.label || p.label || st.preset, preset: st.preset, adapter: st.adapter, created: run.created, updated: Date.now(), status: st.done ? 'done' : run.running ? 'running' : 'stopped', tasksCompleted: st.tasksCompleted, totalTasks: st.trainIds.length * st.numEpochs, calls: st.calls || 0, pop: st.mas ? st.mas.population.length : null, tests: st.tests.map((t) => ({ tasksCompleted: t.tasksCompleted, accuracy: t.accuracy, avgScore: t.avgScore, success: t.success, total: t.total })), tiers: Object.assign({}, ui.tiers), births: st.births || 0, variant: !!(st.cfg.page) || /variant/.test(st.label || ''), bankruptcies: st.mas ? st.mas.bankruptcy_count : 0 };
 }
 async function loadRunState(id) {
   const ck = await db.doc('runs/' + id + '/ckpt/state').get(); if (!ck.exists) throw new Error('no checkpoint');
@@ -161,7 +161,27 @@ async function listRuns() {
   catch (e) { saved.list = []; }
   renderRuns();
 }
+function renderReport() {
+  const host = $('rpReport'); if (!host) return;
+  const withTests = saved.list.filter((r) => r.tests && r.tests.length);
+  const pick = withTests.find((r) => r.status === 'done') || withTests[0];
+  if (!pick) {
+    host.innerHTML = '<div class="panel empty"><div><span class="kicker">Completed real run</span><p style="margin-top:6px">' + (db ? 'No real run saved yet. Pick <b>Quick look</b> below and press Start. When it finishes, its before-and-after score, prompt rewrites and every payment show up here, and anyone with the link can replay it for free.' : 'Saved real runs show here when the page is opened on claude.ai or in the Claude app.') + '</p></div></div>';
+    return;
+  }
+  const f = pick.tests[0], l = pick.tests[pick.tests.length - 1], best = pick.tests.reduce((m, t) => Math.max(m, t.accuracy), 0);
+  const d = l.accuracy - f.accuracy, sc = pick.adapter === 'research' && l.avgScore != null;
+  host.innerHTML = '<div class="panel"><div><span class="kicker">' + (pick.status === 'done' ? 'Completed real run' : 'Latest real run (unfinished)') + '</span><h3 style="margin-top:4px">' + esc(pick.label) + '</h3><p class="muted" style="margin-top:2px">' + new Date(pick.created || pick.updated).toLocaleDateString() + ' · Claude agents · ' + pick.tasksCompleted + ' of ' + pick.totalTasks + ' training tasks</p>'
+    + '<div class="row" style="margin-top:12px;align-items:baseline;gap:14px"><span class="big">' + pct(f.accuracy) + ' <span class="muted">&rarr;</span> ' + pct(l.accuracy) + '</span><span class="' + (d < 0 ? 'bad' : 'muted') + '">' + (pick.tests.length < 2 ? 'only one test so far' : (d >= 0 ? '+' : '') + Math.round(d * 100) + ' points, test pass rate before and after training') + '</span></div>'
+    + (sc ? '<p class="muted" style="margin-top:6px">Average rubric score ' + f.avgScore.toFixed(2) + ' to ' + l.avgScore.toFixed(2) + '</p>' : '') + '</div>'
+    + '<div><div class="facts"><div><span>Best test</span><b>' + pct(best) + '</b></div><div><span>Prompt rewrites</span><b>' + (pick.births != null ? pick.births : '-') + '</b></div><div><span>Bankruptcies</span><b>' + (pick.bankruptcies || 0) + '</b></div><div><span>Model calls</span><b>' + (pick.calls || 0).toLocaleString() + '</b></div></div>'
+    + '<p class="cap">' + l.success + ' of ' + l.total + ' test tasks passed at the end. One run swings a lot, which is why the paper reports both the mean and the best of several runs.</p>'
+    + '<div class="row" style="margin-top:10px"><button class="btn primary" id="rpRepWatch">Watch this run</button><button class="btn" id="rpRepDl">Download</button></div></div></div>';
+  $('rpRepWatch').addEventListener('click', () => { startReplay(pick.id); document.querySelector('.rp-stage').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' }); });
+  $('rpRepDl').addEventListener('click', () => exportRun(pick.id));
+}
 function renderRuns() {
+  renderReport();
   const ul = $('rpRuns'); ul.innerHTML = '';
   if (!db) { ul.innerHTML = '<li class="muted" style="display:block">Saved runs need this page opened on claude.ai or in the Claude app, signed in.</li>'; return; }
   if (!saved.list.length) { ul.innerHTML = '<li class="muted" style="display:block">No saved runs yet. The first run you start appears here.</li>'; return; }
@@ -241,7 +261,7 @@ async function go(id, st, created) {
     }
     saveChain.then(listRuns);
     const used = (run.state.calls || 0) - callsAtTask; callsAtTask = run.state.calls || 0; run.taskCalls.push(used);
-    if (!more) { status('Finished <b>' + esc(run.state.label) + '</b>: ' + run.state.tasksCompleted + ' training tasks, ' + (run.state.calls || 0).toLocaleString() + ' model calls.'); break; }
+    if (!more) { run.state.done = true; run.lastCkpt = JSON.stringify(run.state); status('Finished <b>' + esc(run.state.label) + '</b>: ' + run.state.tasksCompleted + ' training tasks, ' + (run.state.calls || 0).toLocaleString() + ' model calls.'); break; }
     const left = run.state.trainIds.length * run.state.numEpochs - run.state.tasksCompleted;
     const avg = run.taskCalls.reduce((a, b) => a + b, 0) / run.taskCalls.length;
     status('Running <b>' + esc(run.state.label) + '</b>. ' + left + ' training tasks left, roughly ' + Math.round(avg * left).toLocaleString() + ' more calls at the current rate (tests add more).');
@@ -252,6 +272,7 @@ async function go(id, st, created) {
 function onEvent(type, p) {
   if (!run) return;
   const ev = Object.assign({ type }, p);
+  if (type === 'birth') run.state.births = (run.state.births || 0) + 1;
   if (type === 'checkpoint') { run.lastCkpt = JSON.stringify(p); saveCheckpoint(run.lastCkpt); return; }
   if (type === 'task:start' && p.mode === 'train') run.record = [];
   if (run.record && type !== 'act:text' && type !== 'test:event' && !type.startsWith('test')) run.record.push(ev);

@@ -893,7 +893,7 @@ function drawCurr() {
 }
 function renderScorecard(A) {
   const F = R.full, S = R.sensitivity, T1 = R.theorem1.filter((t) => t.wins && t.avgBid <= t.avgPayoff + 1).length;
-  const v = (k) => '<span class="verdict ' + k + '">' + { yes: 'Replicated', part: 'Partly', no: 'Not replicated', na: 'Use the replica' }[k] + '</span>';
+  const v = (k) => '<span class="verdict ' + k + '">' + { yes: 'Same pattern', part: 'Partly', no: 'Different', na: 'Real agents only' }[k] + '</span>';
   const rows = [
     ['A weak team gets much stronger', 'MATH: 15.9% to 57.0% (Llama-8B)', p1(F.initial) + ' to ' + p1(F.final) + ' at the end, ' + p1(F.best) + ' at the best checkpoint', 'yes'],
     ['Gains reach the hardest problems', 'Fig. 6: level 5 rises from about 10% to 20%', 'Level 5: ' + p1(F.levelsStart[4]) + ' to ' + p1(F.levelsEnd[4]), 'yes'],

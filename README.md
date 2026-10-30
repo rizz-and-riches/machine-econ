@@ -1,21 +1,30 @@
-# Economy of Minds, replicated
+# Recreating Economy of Minds
 
-A replication of **Economy of Minds** (Qi et al., 2026, [arXiv:2606.02859](https://arxiv.org/abs/2606.02859)): a team of AI agents with no boss, where a market decides who works, who gets paid, who goes bankrupt, and whose prompt gets rewritten.
+**An implementation of its agent economy, with an interactive toy model to explain the mechanisms.**
 
-I ported the authors' [released code](https://github.com/zhentingqi/EoM) line by line to JavaScript so the whole training loop runs in a browser with real Claude agents. There's also a toy version of the same market that runs instantly, so the paper's experiments can be repeated in seconds.
+Economy of Minds (Qi et al., 2026, [arXiv:2606.02859](https://arxiv.org/abs/2606.02859)) is a team of AI agents with no boss: a market decides who works, who gets paid, who goes bankrupt, and whose prompt gets rewritten.
+
+I ported the authors' [released code](https://github.com/zhentingqi/EoM) line by line to JavaScript, so the whole training loop runs in a browser with real Claude agents. A separate toy version of the same market runs instantly, to show each rule at work.
 
 Built for my TKS Build stage, October 2026.
 
+## What this is, and what it isn't
+
+- **It is a replication of the system.** The auction, payments, rent, bankruptcy, replays, births and prompt evolution are ported from the released code and checked rule by rule by 23 tests. The prompts are extracted from their source byte for byte.
+- **It is not a reproduction of the paper's scores.** The paper used Llama-3.1-8B and Gemma-2-9B. This uses Claude, which is far stronger, so the starting team already scores higher and has less room to improve.
+- **The toy model is an explainer, not evidence.** Its agents and tasks are programmed by me. Its results show the mechanism behaves the way the paper describes. They don't show the paper's findings hold.
+- **Next stage (Iterate):** run the authors' own Python code with Llama-3.1-8B locally, to test whether the results hold with the paper's own model.
+
 ## What's in here
 
-**The replica** (`replica-core.js`, `replica-ui.js`)
+**The build: real agents** (`replica-core.js`, `replica-ui.js`)
 - Their engine (`mas.py`, `population.py`, `agent.py`, `config.py`), training loop (`pipeline.py`) and research adapter, ported line by line.
 - Their prompts are pulled straight out of the Python source by `gen-prompts.py`, so they match byte for byte.
 - Their research config (`global_configs/train_research.json`), every value.
 - Their 40 training and 19 test science tasks with rubrics, plus 150 MATH problems for the paper's MATH setup.
 - Runs save after every task and resume later, like the code's checkpoints. Saved runs can be replayed for free.
 
-**The toy model** (`engine.js`, `app.js`)
+**The explainer: toy model** (`engine.js`, `app.js`)
 - The same economic rules with stand-in agents, whose "prompt" is a wake-up list plus a few skill numbers.
 - Repeats the paper's Table 2 ablations, the rent and reward sensitivity, the curriculum test and the Theorem 1 price check over 30 seeds.
 
@@ -42,16 +51,18 @@ Open `index.html` in a browser for the toy model. The replica needs a way to cal
 | MATH setup | Not in the release. Built from the paper (planner, executor, verifier, 128-token budget, 20 problems per level easy to hard). The paper doesn't say who answers, so the executor does |
 | Table 2 ablations | Not in the release. Switches that do what the paper describes, off by default |
 
-## Toy results (30 seeds, 100 training tasks)
+## Toy model patterns (30 seeds, 100 training tasks)
 
-| Claim from the paper | Toy model | Verdict |
+These check that the mechanism moves in the direction the paper describes, with programmed agents. They are not a reproduction of the paper's findings.
+
+| Claim from the paper | Toy model | Toy pattern |
 |---|---|---|
-| A weak team gets much stronger | 24.6% to 60.9% (best checkpoint 73.7%) | Replicated |
-| Removing the auction hurts | 60.9% to 50.1% | Replicated |
-| Rent and reward need balance | Original 60.9% beats rent x10 (47.2%), reward x0.2 (51.5%), reward x4 (46.0%) | Replicated |
-| Agents absorb checking | Executor self-checking 7% to 59% | Replicated |
-| Removing exploration hurts most | No drop | Not replicated |
-| Easy-to-hard order matters | 60.9% vs 60.5% | Not replicated |
+| A weak team gets much stronger | 24.6% to 60.9% (best checkpoint 73.7%) | Same |
+| Removing the auction hurts | 60.9% to 50.1% | Same |
+| Rent and reward need balance | Original 60.9% beats rent x10 (47.2%), reward x0.2 (51.5%), reward x4 (46.0%) | Same |
+| Agents absorb checking | Executor self-checking 7% to 59% | Same |
+| Removing exploration hurts most | No drop | Different |
+| Easy-to-hard order matters | 60.9% vs 60.5% | Different |
 | Prices approach value (Theorem 1) | 6 of 8 situations | Partly |
 
 Why some didn't replicate, plus every place the paper and the code disagree, is in [`docs/BUILD_NOTES.md`](docs/BUILD_NOTES.md).
